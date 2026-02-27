@@ -9,6 +9,8 @@ export interface CurrentWeather {
   condition: string;
   humidity: number;
   wind: number;
+  sunrise: string;
+  sunset: string;
 }
 
 export interface ForecastDay {

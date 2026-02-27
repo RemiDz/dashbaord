@@ -1,36 +1,52 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Theme Tokens — CSS Custom Properties
+   Theme Tokens — Celestial Palette (Lunata-inspired)
    ============================================================ */
 
 :root {
   /* Backgrounds */
-  --bg-primary: #0a0a14;
-  --bg-secondary: #0d0d1a;
-  --bg-panel: rgba(15, 15, 25, 0.7);
-
-  /* Borders */
-  --border-brass: rgba(205, 170, 110, 0.12);
-  --border-brass-strong: rgba(205, 170, 110, 0.3);
+  --bg-deep: #050810;
+  --bg-space: #0a0f1e;
+  --bg-panel: rgba(12, 16, 28, 0.6);
 
   /* Text */
-  --text-brass: rgba(205, 170, 110, 0.9);
-  --text-brass-dim: rgba(205, 170, 110, 0.5);
-  --text-brass-faint: rgba(205, 170, 110, 0.25);
-  --text-value: rgba(230, 200, 140, 0.95);
+  --text-primary: rgba(220, 230, 255, 0.9);
+  --text-secondary: rgba(180, 200, 240, 0.6);
+  --text-dim: rgba(160, 180, 220, 0.35);
+  --text-label: rgba(180, 200, 255, 0.4);
 
-  /* Accents */
-  --accent-gold: rgba(220, 185, 120, 0.9);
-  --accent-copper: rgba(230, 140, 80, 0.7);
+  /* Accents — warm gold reserved for clock and special highlights */
+  --accent-gold: rgba(230, 200, 120, 0.9);
+  --accent-lunar: rgba(255, 250, 235, 0.9);
+  --accent-schumann: rgba(120, 180, 255, 0.9);
+  --accent-kp-calm: rgba(100, 220, 170, 0.9);
+  --accent-kp-elevated: rgba(255, 150, 80, 0.9);
+  --accent-kp-storm: rgba(255, 80, 60, 0.9);
+  --accent-tidal: rgba(80, 180, 230, 0.9);
+  --accent-binara: rgba(160, 120, 255, 0.8);
 
-  /* Status colours */
-  --status-calm: rgba(100, 200, 160, 0.9);
-  --status-elevated: rgba(230, 130, 80, 0.95);
-  --status-storm: rgba(230, 90, 60, 0.9);
+  /* Glass borders */
+  --border-glass: rgba(255, 255, 255, 0.06);
+  --border-glass-highlight: rgba(255, 255, 255, 0.12);
 
-  /* Tidal */
-  --tidal-blue: rgba(80, 180, 220, 0.9);
+  /* Status badge backgrounds */
+  --badge-calm-bg: rgba(100, 220, 170, 0.1);
+  --badge-elevated-bg: rgba(255, 150, 80, 0.12);
+  --badge-storm-bg: rgba(255, 80, 60, 0.12);
+
+  /* Legacy aliases — panels still referencing old names */
+  --text-brass: rgba(180, 200, 255, 0.4);
+  --text-brass-dim: rgba(160, 180, 220, 0.35);
+  --text-brass-faint: rgba(140, 160, 200, 0.25);
+  --text-value: rgba(220, 230, 255, 0.9);
+  --border-brass: rgba(255, 255, 255, 0.06);
+  --border-brass-strong: rgba(255, 255, 255, 0.12);
+  --status-calm: rgba(100, 220, 170, 0.9);
+  --status-elevated: rgba(255, 150, 80, 0.9);
+  --status-storm: rgba(255, 80, 60, 0.9);
+  --tidal-blue: rgba(80, 180, 230, 0.9);
+  --accent-copper: rgba(255, 150, 80, 0.7);
 
   /* Fonts */
   --font-display: var(--font-cinzel), "Cinzel", serif;
@@ -44,21 +60,21 @@
 
 @theme inline {
   /* Colours */
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-primary: var(--bg-deep);
+  --color-bg-secondary: var(--bg-space);
   --color-bg-panel: var(--bg-panel);
-  --color-border-brass: var(--border-brass);
-  --color-border-brass-strong: var(--border-brass-strong);
-  --color-text-brass: var(--text-brass);
-  --color-text-brass-dim: var(--text-brass-dim);
+  --color-border-brass: var(--border-glass);
+  --color-border-brass-strong: var(--border-glass-highlight);
+  --color-text-brass: var(--text-label);
+  --color-text-brass-dim: var(--text-dim);
   --color-text-brass-faint: var(--text-brass-faint);
-  --color-text-value: var(--text-value);
+  --color-text-value: var(--text-primary);
   --color-accent-gold: var(--accent-gold);
   --color-accent-copper: var(--accent-copper);
   --color-status-calm: var(--status-calm);
   --color-status-elevated: var(--status-elevated);
   --color-status-storm: var(--status-storm);
-  --color-tidal-blue: var(--tidal-blue);
+  --color-tidal-blue: var(--accent-tidal);
 
   /* Font families */
   --font-display: var(--font-cinzel), "Cinzel", serif;
@@ -67,11 +83,16 @@
 
   /* Animations */
   --animate-breathe: breathe 4s ease-in-out infinite;
-  --animate-pulse-glow: pulseGlow 3s ease-in-out infinite;
+  --animate-pulse-glow: panelGlow 6s ease-in-out infinite;
   --animate-alert-pulse: alertPulse 1.5s ease-in-out infinite;
   --animate-slide-in: slideIn 0.6s ease-out both;
   --animate-badge-enter: badgeEnter 0.5s ease-out both;
   --animate-badge-exit: badgeExit 0.4s ease-in both;
+  --animate-twinkle: twinkle 4s ease-in-out infinite;
+  --animate-schumann-pulse: schumannPulse 2s ease-in-out infinite;
+  --animate-tide-arrow: tideArrow 1.5s ease-in-out infinite;
+  --animate-tide-arrow-down: tideArrowDown 1.5s ease-in-out infinite;
+  --animate-value-slide: valueSlideIn 0.4s ease-out;
 }
 
 /* ============================================================
@@ -79,65 +100,76 @@
    ============================================================ */
 
 @keyframes breathe {
-  0%, 100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-@keyframes pulseGlow {
+@keyframes panelGlow {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(205, 170, 110, 0.05);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      0 0 60px rgba(80, 120, 200, 0.03);
   }
   50% {
-    box-shadow: 0 0 20px rgba(205, 170, 110, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      0 0 80px rgba(80, 120, 200, 0.05);
   }
 }
 
 @keyframes alertPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.02);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
 }
 
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes badgeEnter {
-  from {
-    opacity: 0;
-    transform: translateX(16px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
+  from { opacity: 0; transform: translateX(16px) scale(0.92); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 @keyframes badgeExit {
-  from {
-    opacity: 1;
-    transform: translateX(0) scale(1);
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(16px) scale(0.92); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes schumannPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 20px rgba(120, 180, 255, 0.3),
+      0 0 40px rgba(120, 180, 255, 0.1);
   }
-  to {
-    opacity: 0;
-    transform: translateX(16px) scale(0.92);
+  50% {
+    text-shadow:
+      0 0 30px rgba(120, 180, 255, 0.5),
+      0 0 60px rgba(120, 180, 255, 0.2);
   }
+}
+
+@keyframes tideArrow {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(-2px); opacity: 1; }
+}
+
+@keyframes tideArrowDown {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(2px); opacity: 1; }
+}
+
+@keyframes valueSlideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================================
@@ -145,8 +177,8 @@
    ============================================================ */
 
 body {
-  background: var(--bg-primary);
-  color: var(--text-brass);
+  background: var(--bg-deep);
+  color: var(--text-primary);
   font-family: var(--font-body);
   overflow: hidden;
 }
@@ -157,55 +189,109 @@ body {
 
 .panel-label {
   font-family: var(--font-display);
-  font-size: clamp(9px, 0.7vw, 11px);
+  font-size: clamp(11px, 0.85vw, 13px);
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: var(--text-brass-dim);
+  color: var(--text-label);
 }
 
 .value-large {
   font-family: var(--font-mono);
-  font-size: clamp(24px, 2.5vw, 36px);
+  font-size: clamp(42px, 4vw, 56px);
   font-weight: 300;
+  letter-spacing: -1px;
   line-height: 1;
-  color: var(--text-value);
+  color: var(--text-primary);
 }
 
 .value-unit {
-  font-family: var(--font-mono);
-  font-size: clamp(9px, 0.6vw, 12px);
+  font-family: var(--font-body);
+  font-size: clamp(18px, 1.5vw, 22px);
   font-weight: 300;
-  color: var(--text-brass-dim);
-  margin-left: 0.25rem;
+  color: var(--text-dim);
+  opacity: 0.4;
+  margin-left: 0.35rem;
 }
 
 .value-sub {
   font-family: var(--font-body);
-  font-size: clamp(11px, 0.75vw, 14px);
+  font-size: clamp(14px, 1.1vw, 17px);
   font-weight: 300;
-  color: var(--text-brass-dim);
+  color: var(--text-secondary);
+}
+
+.data-label {
+  font-family: var(--font-display);
+  font-size: clamp(9px, 0.65vw, 11px);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.data-value {
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 1.1vw, 18px);
+  font-weight: 300;
+  color: rgba(220, 230, 255, 0.75);
 }
 
 .insight-text {
-  font-size: clamp(11px, 0.72vw, 14px);
+  font-family: var(--font-body);
+  font-size: clamp(16px, 1.3vw, 20px);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Status badges — larger with more presence */
+.status-badge {
+  font-family: var(--font-display);
+  font-size: clamp(10px, 0.75vw, 12px);
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 /* ============================================================
-   Panel Component
+   Panel Component — Glass Morphism
    ============================================================ */
 
 .panel {
   position: relative;
   background: var(--bg-panel);
-  border: 1px solid var(--border-brass);
-  border-radius: 6px;
-  backdrop-filter: blur(20px);
-  padding: clamp(12px, 1vw, 20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: clamp(16px, 1.2vw, 28px);
   overflow: hidden;
-  animation:
-    slideIn 0.6s ease-out both,
-    pulseGlow 3s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 4px 30px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(80, 120, 200, 0.03);
+  animation: slideIn 0.6s ease-out both;
+}
+
+/* Subtle top edge light — like light catching glass */
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -213,26 +299,18 @@ body {
    ============================================================ */
 
 .dashboard-grid {
-  grid-template-columns: 1fr 1fr clamp(240px, 16vw, 320px) 1fr 1fr;
-  gap: clamp(10px, 0.8vw, 18px);
-  padding: clamp(10px, 0.8vw, 18px) clamp(16px, 1.5vw, 32px) clamp(12px, 1vw, 22px);
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: clamp(12px, 1vw, 20px);
+  padding: clamp(10px, 0.8vw, 16px) clamp(20px, 1.5vw, 28px) clamp(12px, 1vw, 20px);
 }
 
-/* Top highlight gradient */
-.panel::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(205, 170, 110, 0.25) 30%,
-    rgba(205, 170, 110, 0.4) 50%,
-    rgba(205, 170, 110, 0.25) 70%,
-    transparent 100%
-  );
-  pointer-events: none;
+/* ============================================================
+   Deep Space Background Layers
+   ============================================================ */
+
+.bg-deep-space {
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(100, 60, 180, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 70%, rgba(40, 100, 160, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 20%, #0d1528 0%, #080c18 40%, #050810 100%);
 }

@@ -3,13 +3,13 @@
 import { memo } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { Sparkline } from "@/components/shared/Sparkline";
+import { AnimatedValue } from "@/components/shared/AnimatedValue";
 import { useKpIndex } from "@/hooks/useKpIndex";
 
-// Use raw rgba values so .replace() works for deriving semi-transparent backgrounds
 function getStatus(kp: number) {
-  if (kp >= 5) return { label: "STORM", color: "rgba(230, 90, 60, 0.9)", desc: "Geomagnetic storm conditions" };
-  if (kp >= 3) return { label: "ELEVATED", color: "rgba(230, 130, 80, 0.95)", desc: "Elevated geomagnetic activity" };
-  return { label: "QUIET", color: "rgba(100, 200, 160, 0.9)", desc: "Calm geomagnetic conditions" };
+  if (kp >= 5) return { label: "STORM", color: "rgba(255, 80, 60, 0.9)", desc: "Geomagnetic storm conditions", ambientColor: "rgba(255, 80, 60, 0.06)" };
+  if (kp >= 3) return { label: "ELEVATED", color: "rgba(255, 150, 80, 0.9)", desc: "Elevated geomagnetic activity", ambientColor: "rgba(255, 150, 80, 0.05)" };
+  return { label: "QUIET", color: "rgba(100, 220, 170, 0.9)", desc: "Calm geomagnetic conditions", ambientColor: "rgba(100, 220, 170, 0.04)" };
 }
 
 interface KpIndexPanelProps {
@@ -26,16 +26,27 @@ export const KpIndexPanel = memo(function KpIndexPanel({ style, animationDelay }
 
   return (
     <Panel className="flex flex-col justify-between" style={style} animationDelay={animationDelay} glowColor={isElevated ? status.color : undefined}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Ambient background tint based on KP level */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          background: `radial-gradient(ellipse at 30% 40%, ${status.ambientColor} 0%, transparent 70%)`,
+          transition: "background 2s ease",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Header with status badge */}
+      <div className="flex items-center justify-between relative z-10">
         <span className="panel-label">KP Index</span>
         {hasData && (
           <span
-            className="panel-label px-2 py-0.5 rounded-sm"
+            className="status-badge"
             style={{
               color: status.color,
               backgroundColor: status.color.replace(/[\d.]+\)$/, "0.1)"),
-              letterSpacing: "0.12em",
             }}
           >
             {status.label}
@@ -43,47 +54,45 @@ export const KpIndexPanel = memo(function KpIndexPanel({ style, animationDelay }
         )}
       </div>
 
-      {/* Current value */}
-      <div className="mt-2">
+      {/* Hero value */}
+      <div className="mt-3 relative z-10">
         {hasData ? (
           <>
-            <span className="value-large" style={{ color: status.color }}>
-              {current.toFixed(1)}
-            </span>
+            <AnimatedValue
+              value={current.toFixed(1)}
+              className="value-large"
+              style={{ color: status.color }}
+            />
             <span className="value-unit">Kp</span>
           </>
         ) : (
-          <span className="value-large" style={{ color: "var(--text-brass-faint)" }}>
+          <span className="value-large" style={{ color: "var(--text-dim)" }}>
             {isLoading ? "—" : "--"}
           </span>
         )}
       </div>
 
-      {/* Subtitle */}
-      <p className="value-sub mt-1">
+      <p className="value-sub mt-1 relative z-10">
         {isLoading && !hasData ? "Connecting..." : error && !hasData ? "Awaiting data" : status.desc}
       </p>
 
       {/* Sparkline */}
-      <div className="mt-auto pt-3">
+      <div className="mt-auto pt-4 relative z-10">
         {sparkData.length > 1 ? (
           <Sparkline
             data={sparkData}
             color={status.color}
             threshold={4}
-            thresholdColor="rgba(230, 90, 60, 0.25)"
-            height={48}
+            thresholdColor="rgba(255, 80, 60, 0.2)"
+            height={100}
             pulseEndpoint={isElevated}
           />
         ) : (
-          <div style={{ height: 48 }} />
+          <div style={{ height: 100 }} />
         )}
       </div>
 
-      {/* Footer */}
-      <p className="value-sub mt-1 text-[0.65rem]" style={{ color: "var(--text-brass-faint)" }}>
-        24h history · 3h readings
-      </p>
+      <p className="data-label mt-2 relative z-10">24h history · 3h readings</p>
     </Panel>
   );
 });

@@ -11,16 +11,19 @@ interface SparklineProps {
   thresholdColor?: string;
   /** When true, the endpoint dot pulses with an animated glow */
   pulseEndpoint?: boolean;
+  /** Number of faint horizontal reference lines to draw */
+  referenceLines?: number;
 }
 
 export function Sparkline({
   data,
-  color = "rgba(205, 170, 110, 0.9)",
-  height = 60,
+  color = "rgba(120, 180, 255, 0.9)",
+  height = 100,
   showArea = true,
   threshold,
-  thresholdColor = "rgba(205, 170, 110, 0.25)",
+  thresholdColor = "rgba(120, 180, 255, 0.25)",
   pulseEndpoint = false,
+  referenceLines = 3,
 }: SparklineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +50,7 @@ export function Sparkline({
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const pad = { top: 4, bottom: 4, left: 0, right: 0 };
+      const pad = { top: 8, bottom: 8, left: 0, right: 0 };
       const plotW = w - pad.left - pad.right;
       const plotH = h - pad.top - pad.bottom;
 
@@ -55,7 +58,6 @@ export function Sparkline({
       const max = Math.max(...data);
       const range = max - min || 1;
 
-      // Map data to canvas coordinates
       function toX(i: number) {
         return pad.left + (i / (data.length - 1)) * plotW;
       }
@@ -64,6 +66,22 @@ export function Sparkline({
       }
 
       ctx!.clearRect(0, 0, w, h);
+
+      // --- Faint horizontal reference lines ---
+      if (referenceLines > 0) {
+        ctx!.save();
+        ctx!.strokeStyle = "rgba(255, 255, 255, 0.04)";
+        ctx!.lineWidth = 0.5;
+        for (let i = 0; i <= referenceLines; i++) {
+          const val = min + (range * i) / referenceLines;
+          const y = toY(val);
+          ctx!.beginPath();
+          ctx!.moveTo(pad.left, y);
+          ctx!.lineTo(w - pad.right, y);
+          ctx!.stroke();
+        }
+        ctx!.restore();
+      }
 
       // --- Threshold line ---
       if (threshold !== undefined) {
@@ -114,39 +132,46 @@ export function Sparkline({
 
       const linePath = cardinalSpline(points, 1);
 
-      // --- Area fill ---
+      // --- Area fill (richer gradient) ---
       if (showArea) {
         const areaPath = new Path2D();
         areaPath.addPath(linePath);
-        // Close the area to the bottom
         areaPath.lineTo(points[points.length - 1][0], h);
         areaPath.lineTo(points[0][0], h);
         areaPath.closePath();
 
         const gradient = ctx!.createLinearGradient(0, pad.top, 0, h);
-        // Parse base colour for gradient — extract rgb values
-        gradient.addColorStop(0, color.replace(/[\d.]+\)$/, "0.25)"));
+        gradient.addColorStop(0, color.replace(/[\d.]+\)$/, "0.35)"));
+        gradient.addColorStop(0.4, color.replace(/[\d.]+\)$/, "0.12)"));
         gradient.addColorStop(1, color.replace(/[\d.]+\)$/, "0.0)"));
         ctx!.fillStyle = gradient;
         ctx!.fill(areaPath);
       }
 
-      // --- Line stroke ---
+      // --- Line stroke (thicker: 3px) ---
       ctx!.strokeStyle = color;
-      ctx!.lineWidth = 1.5;
+      ctx!.lineWidth = 3;
       ctx!.lineJoin = "round";
       ctx!.lineCap = "round";
       ctx!.stroke(linePath);
 
-      // --- Glowing endpoint dot ---
+      // --- Subtle inner line highlight (gives line more depth) ---
+      ctx!.save();
+      ctx!.strokeStyle = color.replace(/[\d.]+\)$/, "0.3)");
+      ctx!.lineWidth = 5;
+      ctx!.filter = "blur(3px)";
+      ctx!.stroke(linePath);
+      ctx!.restore();
+
+      // --- Glowing endpoint dot (larger) ---
       const lastPt = points[points.length - 1];
 
-      // Animated pulse: modulate glow radius and blur over time
+      // Animated pulse
       const pulse = pulseRef.current
         ? 0.5 + 0.5 * Math.sin(Date.now() / 400)
         : 0;
-      const glowRadius = 3 + pulse * 2;
-      const glowBlur = 8 + pulse * 10;
+      const glowRadius = 4 + pulse * 3;
+      const glowBlur = 12 + pulse * 14;
 
       // Outer glow
       ctx!.save();
@@ -158,10 +183,16 @@ export function Sparkline({
       ctx!.fill();
       ctx!.restore();
 
+      // Mid ring
+      ctx!.beginPath();
+      ctx!.arc(lastPt[0], lastPt[1], 3, 0, Math.PI * 2);
+      ctx!.fillStyle = color;
+      ctx!.fill();
+
       // Inner bright core
       ctx!.beginPath();
       ctx!.arc(lastPt[0], lastPt[1], 1.5, 0, Math.PI * 2);
-      ctx!.fillStyle = "#fff";
+      ctx!.fillStyle = "rgba(255, 255, 255, 0.9)";
       ctx!.fill();
     }
 
@@ -186,7 +217,7 @@ export function Sparkline({
       observer.disconnect();
       if (pulseAnimId !== null) cancelAnimationFrame(pulseAnimId);
     };
-  }, [data, color, height, showArea, threshold, thresholdColor, pulseEndpoint]);
+  }, [data, color, height, showArea, threshold, thresholdColor, pulseEndpoint, referenceLines]);
 
   return (
     <div ref={containerRef} className="w-full" style={{ height }}>

@@ -12,7 +12,6 @@ interface AlertBadge {
   bgColor: string;
 }
 
-/** Individual badge with CSS-driven enter/exit animation */
 function Badge({ badge, exiting, onExited }: { badge: AlertBadge; exiting: boolean; onExited: () => void }) {
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -29,23 +28,18 @@ function Badge({ badge, exiting, onExited }: { badge: AlertBadge; exiting: boole
   return (
     <span
       ref={ref}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm ${exiting ? "animate-badge-exit" : "animate-badge-enter"}`}
+      className={`status-badge inline-flex items-center gap-2 ${exiting ? "animate-badge-exit" : "animate-badge-enter"}`}
       style={{
         color: badge.color,
         backgroundColor: badge.bgColor,
-        fontFamily: "var(--font-display)",
-        fontSize: "0.55rem",
-        fontWeight: 600,
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
         whiteSpace: "nowrap",
       }}
     >
       <span
         className="inline-block rounded-full animate-alert-pulse"
         style={{
-          width: "5px",
-          height: "5px",
+          width: "6px",
+          height: "6px",
           backgroundColor: badge.color,
         }}
       />
@@ -59,15 +53,14 @@ export function AlertBadges() {
   const { isSpike, isLoading: schLoading } = useSchumannData();
   const { isFullMoon, isNewMoon, isLoading: lunarLoading } = useLunarData();
 
-  // Build current set of active badge IDs
   const active: AlertBadge[] = [];
 
   if (!kpLoading && kp !== null && kp >= 3) {
     active.push({
       id: "kp",
       label: "KP Spike — Post worthy",
-      color: "rgba(230, 130, 80, 0.95)",
-      bgColor: "rgba(230, 130, 80, 0.12)",
+      color: "rgba(255, 150, 80, 0.9)",
+      bgColor: "rgba(255, 150, 80, 0.12)",
     });
   }
 
@@ -75,8 +68,8 @@ export function AlertBadges() {
     active.push({
       id: "fullmoon",
       label: "Full Moon — Post worthy",
-      color: "rgba(220, 185, 120, 0.9)",
-      bgColor: "rgba(220, 185, 120, 0.12)",
+      color: "rgba(255, 250, 235, 0.8)",
+      bgColor: "rgba(255, 250, 235, 0.08)",
     });
   }
 
@@ -84,8 +77,8 @@ export function AlertBadges() {
     active.push({
       id: "newmoon",
       label: "New Moon — Post worthy",
-      color: "rgba(180, 170, 210, 0.9)",
-      bgColor: "rgba(180, 170, 210, 0.12)",
+      color: "rgba(160, 170, 220, 0.9)",
+      bgColor: "rgba(160, 170, 220, 0.1)",
     });
   }
 
@@ -93,21 +86,18 @@ export function AlertBadges() {
     active.push({
       id: "schumann",
       label: "Schumann Spike — Post worthy",
-      color: "rgba(205, 170, 110, 0.9)",
-      bgColor: "rgba(205, 170, 110, 0.12)",
+      color: "rgba(120, 180, 255, 0.9)",
+      bgColor: "rgba(120, 180, 255, 0.1)",
     });
   }
 
-  // Track displayed badges (including those animating out)
   const [displayed, setDisplayed] = useState<AlertBadge[]>([]);
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
 
   const activeIds = new Set(active.map((b) => b.id));
   const displayedIds = new Set(displayed.map((b) => b.id));
 
-  // Detect new badges to add
   const toAdd = active.filter((b) => !displayedIds.has(b.id) && !exitingIds.has(b.id));
-  // Detect badges to remove (start exit animation)
   const toRemove = displayed.filter((b) => !activeIds.has(b.id) && !exitingIds.has(b.id));
 
   useEffect(() => {

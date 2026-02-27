@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { Sparkline } from "@/components/shared/Sparkline";
+import { AnimatedValue } from "@/components/shared/AnimatedValue";
 import { useTidalData } from "@/hooks/useTidalData";
 
 interface TidalPanelProps {
@@ -11,7 +12,6 @@ interface TidalPanelProps {
 }
 
 function formatEventTime(timeStr: string): string {
-  // Handle both "YYYY-MM-DD HH:MM" (NOAA) and ISO formats
   try {
     const d = new Date(timeStr.includes("T") ? timeStr : timeStr.replace(" ", "T") + "Z");
     return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -36,35 +36,46 @@ export const TidalPanel = memo(function TidalPanel({ style, animationDelay }: Ti
 
   return (
     <Panel className="flex flex-col" style={style} animationDelay={animationDelay}>
-      {/* Top row: header + current + badge + next high/low grid */}
+      {/* Top row */}
       <div className="flex items-start justify-between">
-        {/* Left: header + current value */}
+        {/* Left: header + current */}
         <div>
           <div className="flex items-center gap-3">
             <span className="panel-label">Tidal Intelligence</span>
             {hasData && (
               <span
-                className="panel-label px-2 py-0.5 rounded-sm"
+                className="status-badge inline-flex items-center gap-1.5"
                 style={{
-                  color: rising ? "rgba(80, 180, 220, 0.9)" : "rgba(205, 170, 110, 0.7)",
-                  backgroundColor: rising ? "rgba(80, 180, 220, 0.1)" : "rgba(205, 170, 110, 0.08)",
-                  letterSpacing: "0.12em",
+                  color: rising ? "var(--accent-tidal)" : "var(--text-secondary)",
+                  backgroundColor: rising ? "rgba(80, 180, 230, 0.1)" : "rgba(180, 200, 240, 0.08)",
                 }}
               >
+                {/* Animated arrow */}
+                <span
+                  style={{
+                    display: "inline-block",
+                    animation: rising ? "tideArrow 1.5s ease-in-out infinite" : "tideArrowDown 1.5s ease-in-out infinite",
+                    fontSize: "clamp(12px, 0.9vw, 15px)",
+                  }}
+                >
+                  {rising ? "▲" : "▼"}
+                </span>
                 {rising ? "RISING" : "FALLING"}
               </span>
             )}
           </div>
-          <div className="mt-2">
+          <div className="mt-3">
             {hasData ? (
               <>
-                <span className="value-large" style={{ color: "var(--tidal-blue)" }}>
-                  {currentHeight.toFixed(1)}
-                </span>
+                <AnimatedValue
+                  value={currentHeight.toFixed(1)}
+                  className="value-large"
+                  style={{ color: "var(--accent-tidal)" }}
+                />
                 <span className="value-unit">m</span>
               </>
             ) : (
-              <span className="value-large" style={{ color: "var(--text-brass-faint)" }}>
+              <span className="value-large" style={{ color: "var(--text-dim)" }}>
                 {isLoading ? "—" : "--"}
               </span>
             )}
@@ -72,50 +83,37 @@ export const TidalPanel = memo(function TidalPanel({ style, animationDelay }: Ti
         </div>
 
         {/* Right: 2×2 high/low grid */}
-        <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 text-right">
-          <TideCell
-            label="Next High"
-            time={nextHigh ? formatEventTime(nextHigh.time) : "—"}
-            height={nextHigh ? formatEventHeight(nextHigh.height) : "—"}
-          />
-          <TideCell
-            label="Next Low"
-            time={nextLow ? formatEventTime(nextLow.time) : "—"}
-            height={nextLow ? formatEventHeight(nextLow.height) : "—"}
-          />
-          <TideCell
-            label="Prev High"
-            time={prevHigh ? formatEventTime(prevHigh.time) : "—"}
-            height={prevHigh ? formatEventHeight(prevHigh.height) : "—"}
-          />
-          <TideCell
-            label="Prev Low"
-            time={prevLow ? formatEventTime(prevLow.time) : "—"}
-            height={prevLow ? formatEventHeight(prevLow.height) : "—"}
-          />
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-right">
+          <TideCell label="Next High" time={nextHigh ? formatEventTime(nextHigh.time) : "—"} height={nextHigh ? formatEventHeight(nextHigh.height) : "—"} />
+          <TideCell label="Next Low" time={nextLow ? formatEventTime(nextLow.time) : "—"} height={nextLow ? formatEventHeight(nextLow.height) : "—"} />
+          <TideCell label="Prev High" time={prevHigh ? formatEventTime(prevHigh.time) : "—"} height={prevHigh ? formatEventHeight(prevHigh.height) : "—"} />
+          <TideCell label="Prev Low" time={prevLow ? formatEventTime(prevLow.time) : "—"} height={prevLow ? formatEventHeight(prevLow.height) : "—"} />
         </div>
       </div>
 
-      {/* Subtitle for loading/error */}
       {!hasData && (
         <p className="value-sub mt-1">
           {isLoading ? "Connecting..." : error ? "Awaiting data" : ""}
         </p>
       )}
 
-      {/* Full-width sparkline */}
-      <div className="mt-auto pt-3">
+      {/* Sparkline — oceanic feel with pulse endpoint */}
+      <div className="mt-auto pt-4">
         {sparkData.length > 1 ? (
-          <Sparkline data={sparkData} color="rgba(80, 180, 220, 0.9)" height={52} showArea />
+          <Sparkline
+            data={sparkData}
+            color="rgba(80, 180, 230, 0.9)"
+            height={100}
+            showArea
+            pulseEndpoint
+            referenceLines={2}
+          />
         ) : (
-          <div style={{ height: 52 }} />
+          <div style={{ height: 100 }} />
         )}
       </div>
 
-      {/* Location footer */}
-      <p className="value-sub mt-1 text-[0.65rem]" style={{ color: "var(--text-brass-faint)" }}>
-        {location}
-      </p>
+      <p className="data-label mt-2">{location}</p>
     </Panel>
   );
 });
@@ -123,12 +121,10 @@ export const TidalPanel = memo(function TidalPanel({ style, animationDelay }: Ti
 function TideCell({ label, time, height }: { label: string; time: string; height: string }) {
   return (
     <div>
-      <p className="text-[0.5rem] uppercase tracking-wider" style={{ color: "var(--text-brass-faint)" }}>
-        {label}
-      </p>
-      <p className="font-mono text-xs" style={{ color: "var(--tidal-blue)", fontWeight: 300 }}>
+      <p className="data-label">{label}</p>
+      <p className="data-value mt-0.5">
         {time}
-        <span className="ml-1.5" style={{ color: "var(--text-brass-dim)" }}>{height}</span>
+        <span className="ml-1.5" style={{ color: "var(--text-dim)" }}>{height}</span>
       </p>
     </div>
   );

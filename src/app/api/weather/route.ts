@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     const weatherUrl =
       `${OPEN_METEO_BASE}?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code` +
-      `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+      `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
       `&wind_speed_unit=kmh&timezone=auto&forecast_days=5`;
 
     const geoUrl =
@@ -85,6 +85,20 @@ export async function GET(request: Request) {
       // Location name is non-critical
     }
 
+    // Parse sunrise/sunset for today
+    const todaySunrise = data.daily?.sunrise?.[0] ?? "";
+    const todaySunset = data.daily?.sunset?.[0] ?? "";
+
+    function formatSunTime(isoStr: string): string {
+      if (!isoStr) return "";
+      try {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      } catch {
+        return "";
+      }
+    }
+
     // Parse current conditions
     const current = {
       icon: wmoEmoji(data.current.weather_code),
@@ -92,6 +106,8 @@ export async function GET(request: Request) {
       condition: wmoCondition(data.current.weather_code),
       humidity: Math.round(data.current.relative_humidity_2m),
       wind: Math.round(data.current.wind_speed_10m),
+      sunrise: formatSunTime(todaySunrise),
+      sunset: formatSunTime(todaySunset),
     };
 
     // Parse daily forecast (up to 4 days)
