@@ -1,4 +1,5 @@
 import useSWR from "swr";
+import { useGeolocation } from "./useGeolocation";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,8 +22,14 @@ interface TidalResponse {
 }
 
 export function useTidalData() {
+  const coords = useGeolocation();
+
+  const key = coords
+    ? `/api/tidal?lat=${coords.lat}&lon=${coords.lon}`
+    : "/api/tidal";
+
   const { data, error, isLoading } = useSWR<TidalResponse>(
-    "/api/tidal",
+    key,
     fetcher,
     {
       refreshInterval: 30 * 60 * 1000,
@@ -56,11 +63,11 @@ export function useTidalData() {
   let currentHeight: number | null = null;
   if (hourly.length > 0) {
     let closest = hourly[0];
-    let minDiff = Infinity;
+    let minDist = Infinity;
     for (const p of hourly) {
       const diff = Math.abs(new Date(p.time).getTime() - now.getTime());
-      if (diff < minDiff) {
-        minDiff = diff;
+      if (diff < minDist) {
+        minDist = diff;
         closest = p;
       }
     }

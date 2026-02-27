@@ -7,8 +7,8 @@ import { NextResponse } from "next/server";
  *  1. NOAA Tides & Currents (default) — free, keyless, US stations only
  *  2. UK Admiralty Discovery API — free tier, requires key, UK stations
  *
- * Set TIDAL_PROVIDER=admiralty and ADMIRALTY_API_KEY in .env.local for UK data.
- * Default: NOAA station 8518750 (The Battery, New York).
+ * Accepts optional ?lat=&lon= query params to auto-detect the nearest
+ * NOAA tide station. Falls back to env vars or default station.
  */
 
 // ── Types ──────────────────────────────────────────────────
@@ -31,6 +31,13 @@ interface TidalResponse {
   error?: string;
 }
 
+interface NOAAStation {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
 // ── Date helpers ───────────────────────────────────────────
 
 function formatDate(date: Date): string {
@@ -40,9 +47,75 @@ function formatDate(date: Date): string {
   return `${y}${m}${d}`;
 }
 
+// ── Nearest station lookup ─────────────────────────────────
+
+/** Haversine distance in km */
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** In-memory cache for station list (refreshed once per process lifecycle) */
+let cachedStations: NOAAStation[] | null = null;
+let cacheTime = 0;
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+async function getNOAAStations(): Promise<NOAAStation[]> {
+  if (cachedStations && Date.now() - cacheTime < CACHE_TTL) {
+    return cachedStations;
+  }
+
+  const res = await fetch(
+    "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions",
+    { next: { revalidate: 86400 } }
+  );
+
+  if (!res.ok) return cachedStations ?? [];
+
+  const data = await res.json();
+  cachedStations = (data.stations ?? []).map(
+    (s: { id: string; name: string; lat: number; lng: number }) => ({
+      id: s.id,
+      name: s.name,
+      lat: s.lat,
+      lng: s.lng,
+    })
+  );
+  cacheTime = Date.now();
+  return cachedStations!;
+}
+
+async function findNearestStation(
+  lat: number,
+  lon: number
+): Promise<{ id: string; name: string } | null> {
+  const stations = await getNOAAStations();
+  if (stations.length === 0) return null;
+
+  let nearest = stations[0];
+  let minDist = Infinity;
+
+  for (const s of stations) {
+    const d = haversineKm(lat, lon, s.lat, s.lng);
+    if (d < minDist) {
+      minDist = d;
+      nearest = s;
+    }
+  }
+
+  return { id: nearest.id, name: nearest.name };
+}
+
 // ── NOAA provider ──────────────────────────────────────────
 
-async function fetchNOAA(station: string): Promise<TidalResponse> {
+async function fetchNOAA(station: string, locationName: string): Promise<TidalResponse> {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -86,7 +159,7 @@ async function fetchNOAA(station: string): Promise<TidalResponse> {
     })
   );
 
-  return { events, hourly, location: "The Battery, New York" };
+  return { events, hourly, location: locationName };
 }
 
 // ── Admiralty UK provider ──────────────────────────────────
@@ -168,7 +241,8 @@ function interpolateHourly(events: TidalEvent[]): HourlyPoint[] {
 
 // ── Route handler ──────────────────────────────────────────
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
   const provider = process.env.TIDAL_PROVIDER || "noaa";
 
   try {
@@ -184,9 +258,22 @@ export async function GET() {
       return NextResponse.json(data);
     }
 
-    // Default: NOAA
-    const station = process.env.NOAA_TIDAL_STATION || "8518750";
-    const data = await fetchNOAA(station);
+    // Default: NOAA — use nearest station if coordinates provided
+    const lat = searchParams.get("lat");
+    const lon = searchParams.get("lon");
+
+    let station = process.env.NOAA_TIDAL_STATION || "8518750";
+    let locationName = "The Battery, New York";
+
+    if (lat && lon) {
+      const nearest = await findNearestStation(parseFloat(lat), parseFloat(lon));
+      if (nearest) {
+        station = nearest.id;
+        locationName = nearest.name;
+      }
+    }
+
+    const data = await fetchNOAA(station, locationName);
     return NextResponse.json(data);
   } catch (error) {
     console.error("Tidal fetch error:", error);

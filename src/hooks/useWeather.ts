@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import useSWR from "swr";
+import { useGeolocation } from "./useGeolocation";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -25,33 +25,9 @@ interface WeatherResponse {
   error?: string;
 }
 
-function useGeolocation() {
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({
-          lat: Math.round(pos.coords.latitude * 10000) / 10000,
-          lon: Math.round(pos.coords.longitude * 10000) / 10000,
-        });
-      },
-      () => {
-        // Permission denied or error — API route will use server-side defaults
-      },
-      { timeout: 10000, maximumAge: 30 * 60 * 1000 }
-    );
-  }, []);
-
-  return coords;
-}
-
 export function useWeather() {
   const coords = useGeolocation();
 
-  // Build SWR key with coordinates when available
   const key = coords
     ? `/api/weather?lat=${coords.lat}&lon=${coords.lon}`
     : "/api/weather";
