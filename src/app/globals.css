@@ -1,26 +1,238 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Theme Tokens — CSS Custom Properties
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-primary: #0a0a14;
+  --bg-secondary: #0d0d1a;
+  --bg-panel: rgba(15, 15, 25, 0.7);
+
+  /* Borders */
+  --border-brass: rgba(205, 170, 110, 0.12);
+  --border-brass-strong: rgba(205, 170, 110, 0.3);
+
+  /* Text */
+  --text-brass: rgba(205, 170, 110, 0.9);
+  --text-brass-dim: rgba(205, 170, 110, 0.5);
+  --text-brass-faint: rgba(205, 170, 110, 0.25);
+  --text-value: rgba(230, 200, 140, 0.95);
+
+  /* Accents */
+  --accent-gold: rgba(220, 185, 120, 0.9);
+  --accent-copper: rgba(230, 140, 80, 0.7);
+
+  /* Status colours */
+  --status-calm: rgba(100, 200, 160, 0.9);
+  --status-elevated: rgba(230, 130, 80, 0.95);
+  --status-storm: rgba(230, 90, 60, 0.9);
+
+  /* Tidal */
+  --tidal-blue: rgba(80, 180, 220, 0.9);
+
+  /* Fonts */
+  --font-display: var(--font-cinzel), "Cinzel", serif;
+  --font-body: var(--font-cormorant), "Cormorant Garamond", serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
 }
+
+/* ============================================================
+   Tailwind v4 Theme Extension
+   ============================================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Colours */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-panel: var(--bg-panel);
+  --color-border-brass: var(--border-brass);
+  --color-border-brass-strong: var(--border-brass-strong);
+  --color-text-brass: var(--text-brass);
+  --color-text-brass-dim: var(--text-brass-dim);
+  --color-text-brass-faint: var(--text-brass-faint);
+  --color-text-value: var(--text-value);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-copper: var(--accent-copper);
+  --color-status-calm: var(--status-calm);
+  --color-status-elevated: var(--status-elevated);
+  --color-status-storm: var(--status-storm);
+  --color-tidal-blue: var(--tidal-blue);
+
+  /* Font families */
+  --font-display: var(--font-cinzel), "Cinzel", serif;
+  --font-body: var(--font-cormorant), "Cormorant Garamond", serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
+
+  /* Animations */
+  --animate-breathe: breathe 4s ease-in-out infinite;
+  --animate-pulse-glow: pulseGlow 3s ease-in-out infinite;
+  --animate-alert-pulse: alertPulse 1.5s ease-in-out infinite;
+  --animate-slide-in: slideIn 0.6s ease-out both;
+  --animate-badge-enter: badgeEnter 0.5s ease-out both;
+  --animate-badge-exit: badgeExit 0.4s ease-in both;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ============================================================
+   Keyframe Animations
+   ============================================================ */
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(205, 170, 110, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(205, 170, 110, 0.12);
+  }
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes badgeEnter {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes badgeExit {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px) scale(0.92);
+  }
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-brass);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* ============================================================
+   Utility Classes
+   ============================================================ */
+
+.panel-label {
+  font-family: var(--font-display);
+  font-size: clamp(9px, 0.7vw, 11px);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-brass-dim);
+}
+
+.value-large {
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 2.5vw, 36px);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--text-value);
+}
+
+.value-unit {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 0.6vw, 12px);
+  font-weight: 300;
+  color: var(--text-brass-dim);
+  margin-left: 0.25rem;
+}
+
+.value-sub {
+  font-family: var(--font-body);
+  font-size: clamp(11px, 0.75vw, 14px);
+  font-weight: 300;
+  color: var(--text-brass-dim);
+}
+
+.insight-text {
+  font-size: clamp(11px, 0.72vw, 14px);
+}
+
+/* ============================================================
+   Panel Component
+   ============================================================ */
+
+.panel {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-brass);
+  border-radius: 6px;
+  backdrop-filter: blur(20px);
+  padding: clamp(12px, 1vw, 20px);
+  overflow: hidden;
+  animation:
+    slideIn 0.6s ease-out both,
+    pulseGlow 3s ease-in-out infinite;
+}
+
+/* ============================================================
+   Dashboard Grid — Responsive
+   ============================================================ */
+
+.dashboard-grid {
+  grid-template-columns: 1fr 1fr clamp(240px, 16vw, 320px) 1fr 1fr;
+  gap: clamp(10px, 0.8vw, 18px);
+  padding: clamp(10px, 0.8vw, 18px) clamp(16px, 1.5vw, 32px) clamp(12px, 1vw, 22px);
+}
+
+/* Top highlight gradient */
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(205, 170, 110, 0.25) 30%,
+    rgba(205, 170, 110, 0.4) 50%,
+    rgba(205, 170, 110, 0.25) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
 }

@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)",
+      "Bash(curl:*)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:www-app3.gfz-potsdam.de)",
+      "WebSearch",
+      "WebFetch(domain:api.tidesandcurrents.noaa.gov)",
+      "WebFetch(domain:services.swpc.noaa.gov)",
+      "WebFetch(domain:www.heartmath.org)",
+      "WebFetch(domain:geocenter.info)",
+      "WebFetch(domain:schumannresonancedata.com)",
+      "WebFetch(domain:environment.data.gov.uk)",
+      "WebFetch(domain:tidepredictions.pla.co.uk)",
+      "WebFetch(domain:sosrff.tsu.ru)",
+      "WebFetch(domain:www.spaceweatherlive.com)",
+      "WebFetch(domain:schumann-resonance.earth)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vlf.it)",
+      "WebFetch(domain:api.meteoagent.com)",
+      "WebFetch(domain:meteoagent.com)",
+      "WebFetch(domain:sos70.ru)",
+      "WebFetch(domain:www.etna-ero.it)",
+      "WebFetch(domain:www.frequencyforecast.com)",
+      "WebFetch(domain:uniqatlas.com)",
+      "WebFetch(domain:admiraltyapi.portal.azure-api.net)",
+      "WebFetch(domain:www.vlf.it)",
+      "WebFetch(domain:easytide.admiralty.co.uk)",
+      "Bash(npx:*)",
+      "Bash(rm:*)",
+      "Bash(node:*)",
+      "Bash(do sleep:*)",
+      "Bash(tasklist:*)"
+    ]
+  }
+}
