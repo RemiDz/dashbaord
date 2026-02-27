@@ -20,6 +20,7 @@ export interface ForecastDay {
 interface WeatherResponse {
   current: CurrentWeather | null;
   forecast: ForecastDay[];
+  location?: string;
   error?: string;
 }
 
@@ -37,6 +38,7 @@ export function useWeather() {
   return {
     current: data?.current ?? null,
     forecast: data?.forecast ?? [],
+    location: data?.location ?? "",
     isLoading,
     error: error || data?.error,
   };

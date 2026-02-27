@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
  */
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
+const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 
 // WMO Weather interpretation codes → emoji
 // https://open-meteo.com/en/docs#weathervariables
@@ -49,16 +50,39 @@ export async function GET() {
   const lon = process.env.WEATHER_LON || "-0.1278";
 
   try {
-    const url =
+    const weatherUrl =
       `${OPEN_METEO_BASE}?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
       `&wind_speed_unit=kmh&timezone=auto&forecast_days=5`;
 
-    const res = await fetch(url, { next: { revalidate: 1800 } });
+    const geoUrl =
+      `${NOMINATIM_BASE}?lat=${lat}&lon=${lon}&format=json&zoom=10`;
+
+    const [res, geoRes] = await Promise.all([
+      fetch(weatherUrl, { next: { revalidate: 1800 } }),
+      fetch(geoUrl, {
+        next: { revalidate: 86400 },
+        headers: { "User-Agent": "HarmonicWavesDashboard/1.0" },
+      }),
+    ]);
+
     if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
 
     const data = await res.json();
+
+    // Reverse geocode for location name
+    let location = "";
+    try {
+      if (geoRes.ok) {
+        const geo = await geoRes.json();
+        const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || "";
+        const country = geo.address?.country_code?.toUpperCase() || "";
+        location = city && country ? `${city}, ${country}` : city || country;
+      }
+    } catch {
+      // Location name is non-critical
+    }
 
     // Parse current conditions
     const current = {
@@ -78,7 +102,7 @@ export async function GET() {
       low: Math.round(data.daily.temperature_2m_min[i]),
     }));
 
-    return NextResponse.json({ current, forecast });
+    return NextResponse.json({ current, forecast, location });
   } catch (error) {
     console.error("Weather fetch error:", error);
     return NextResponse.json(

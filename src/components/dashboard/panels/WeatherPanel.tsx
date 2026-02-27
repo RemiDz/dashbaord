@@ -10,14 +10,24 @@ interface WeatherPanelProps {
 }
 
 export const WeatherPanel = memo(function WeatherPanel({ style, animationDelay }: WeatherPanelProps) {
-  const { current, forecast, isLoading, error } = useWeather();
+  const { current, forecast, location, isLoading, error } = useWeather();
 
   const hasData = current !== null;
 
   return (
     <Panel className="flex flex-col" style={style} animationDelay={animationDelay}>
       {/* Header */}
-      <span className="panel-label">Weather</span>
+      <div className="flex items-center justify-between">
+        <span className="panel-label">Weather</span>
+        {location && (
+          <span
+            className="text-[0.55rem] uppercase tracking-wider"
+            style={{ color: "var(--text-brass-faint)" }}
+          >
+            {location}
+          </span>
+        )}
+      </div>
 
       {/* Current conditions */}
       <div className="flex items-start justify-between mt-2">
