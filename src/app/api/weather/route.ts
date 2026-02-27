@@ -45,9 +45,10 @@ function dayLabel(date: Date, isToday: boolean): string {
   return date.toLocaleDateString("en-GB", { weekday: "short" });
 }
 
-export async function GET() {
-  const lat = process.env.WEATHER_LAT || "51.5074";
-  const lon = process.env.WEATHER_LON || "-0.1278";
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const lat = searchParams.get("lat") || process.env.WEATHER_LAT || "51.5074";
+  const lon = searchParams.get("lon") || process.env.WEATHER_LON || "-0.1278";
 
   try {
     const weatherUrl =
