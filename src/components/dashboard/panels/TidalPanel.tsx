@@ -306,6 +306,29 @@ export const TidalPanel = memo(function TidalPanel({
         <div className="flex-1 flex flex-col justify-center">
           <AqiBar aqi={air.aqi} />
 
+          {/* 24H AQI trend sparkline */}
+          {air.hourlyAqi.length > 1 && (
+            <div className="mt-1">
+              <Sparkline
+                data={air.hourlyAqi}
+                color={air.aqi !== null ? getAqiStatus(air.aqi).color : "rgba(180, 220, 80, 0.9)"}
+                height={50}
+                showArea
+                pulseEndpoint
+              />
+              <p
+                className="data-label"
+                style={{
+                  fontSize: "clamp(6px, 0.45vw, 8px)",
+                  marginTop: 1,
+                  textAlign: "center",
+                }}
+              >
+                24H AQI Trend
+              </p>
+            </div>
+          )}
+
           {/* Pollutant row — single compact line */}
           <div
             className="flex justify-between mt-2"

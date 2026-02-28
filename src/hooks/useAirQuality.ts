@@ -9,6 +9,7 @@ export interface AirQualityData {
   pm10: number | null;
   no2: number | null;
   o3: number | null;
+  hourlyAqi: number[];
 }
 
 interface AirQualityResponse extends AirQualityData {
@@ -38,6 +39,7 @@ export function useAirQuality() {
     pm10: data?.pm10 ?? null,
     no2: data?.no2 ?? null,
     o3: data?.o3 ?? null,
+    hourlyAqi: data?.hourlyAqi ?? [],
     isLoading,
     error: error || data?.error,
   };
