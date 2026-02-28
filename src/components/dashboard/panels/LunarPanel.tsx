@@ -97,7 +97,7 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
       const vh = window.innerHeight;
       // Row 1 is ~50% of viewport minus header (~40px). Moon should be generous.
       const available = (vh - 56) * 0.5;
-      setMoonSize(Math.min(320, Math.max(180, Math.round(available * 0.52))));
+      setMoonSize(Math.min(240, Math.max(140, Math.round(available * 0.38))));
     }
     updateSize();
     window.addEventListener("resize", updateSize);
@@ -117,7 +117,7 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
       <span className="panel-label relative z-10">Lunar Phase</span>
 
       {/* Moon centred prominently — the hero element */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center relative z-10">
         <MoonPhase
           illumination={lunar.illumination}
           phase={lunar.phase}
@@ -130,9 +130,9 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
           style={{
             color: "var(--selenite-white)",
             fontWeight: 400,
-            fontSize: "clamp(18px, 1.5vw, 24px)",
+            fontSize: "clamp(16px, 1.3vw, 20px)",
             letterSpacing: "1px",
-            marginTop: 4,
+            marginTop: 2,
           }}
         >
           {lunar.phaseName}
@@ -147,7 +147,7 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
             fontStyle: "italic",
             fontWeight: 300,
             fontSize: "clamp(11px, 0.85vw, 14px)",
-            marginTop: 2,
+            marginTop: 1,
           }}
         >
           {getPhaseDirection(lunar.phase)}
@@ -159,9 +159,9 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
           style={{
             color: "var(--selenite-white)",
             fontWeight: 300,
-            fontSize: "clamp(28px, 2.5vw, 38px)",
+            fontSize: "clamp(22px, 2vw, 30px)",
             lineHeight: 1,
-            marginTop: 6,
+            marginTop: 3,
           }}
         >
           {Math.round(lunar.illumination * 100)}%
@@ -189,7 +189,7 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
       />
 
       {/* Data grid — arranged below moon */}
-      <div className="grid grid-cols-3 gap-x-3 gap-y-2 mt-3 relative z-10">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 mt-2 relative z-10">
         <InfoCell
           label="Sign"
           value={`${lunar.signSymbol} ${lunar.sign}`}

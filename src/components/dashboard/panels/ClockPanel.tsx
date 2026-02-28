@@ -52,7 +52,7 @@ export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
       const fromWidth = Math.round(vw * 0.25);
       // Height: row 1 is ~50% of viewport minus header, clock takes most of it
       const fromHeight = Math.round((vh - 56) * 0.42);
-      setClockSize(Math.min(400, Math.max(200, Math.min(fromWidth, fromHeight))));
+      setClockSize(Math.min(360, Math.max(200, Math.min(fromWidth, fromHeight))));
     }
     updateSize();
     window.addEventListener("resize", updateSize);
