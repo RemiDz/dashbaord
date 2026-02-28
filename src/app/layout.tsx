@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   description: "Ambient wall dashboard for sound healing \u2014 live Earth and cosmic data",
   robots: { index: false, follow: false },
   other: {
-    "theme-color": "#050810",
+    "theme-color": "#05050F",
   },
   icons: {
     icon: [

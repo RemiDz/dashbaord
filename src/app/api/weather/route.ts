@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   try {
     const weatherUrl =
       `${OPEN_METEO_BASE}?latitude=${lat}&longitude=${lon}` +
-      `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code` +
+      `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,surface_pressure` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
       `&wind_speed_unit=kmh&timezone=auto&forecast_days=5`;
 
@@ -108,11 +108,12 @@ export async function GET(request: Request) {
       wind: Math.round(data.current.wind_speed_10m),
       sunrise: formatSunTime(todaySunrise),
       sunset: formatSunTime(todaySunset),
+      pressure: Math.round(data.current.surface_pressure),
     };
 
-    // Parse daily forecast (up to 4 days)
+    // Parse daily forecast (up to 5 days)
     const todayStr = new Date().toISOString().slice(0, 10);
-    const forecast = data.daily.time.slice(0, 4).map((dateStr: string, i: number) => ({
+    const forecast = data.daily.time.slice(0, 5).map((dateStr: string, i: number) => ({
       day: dayLabel(new Date(dateStr + "T12:00:00Z"), dateStr === todayStr),
       icon: wmoEmoji(data.daily.weather_code[i]),
       high: Math.round(data.daily.temperature_2m_max[i]),

@@ -1,23 +1,35 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Theme Tokens — Celestial Palette (Lunata-inspired)
+   Theme Tokens — Lunata Celestial Palette (exact match)
    ============================================================ */
 
 :root {
-  /* Backgrounds */
-  --bg-deep: #050810;
-  --bg-space: #0a0f1e;
-  --bg-panel: rgba(12, 16, 28, 0.6);
+  /* Core palette — copied from Lunata */
+  --void-black: #05050F;
+  --deep-indigo: #0A0A2E;
+  --selenite-white: #F0EEF8;
+  --moonsilver: #C8C4DC;
+  --lunar-gold: #E8C97A;
 
-  /* Text */
-  --text-primary: rgba(220, 230, 255, 0.9);
-  --text-secondary: rgba(180, 200, 240, 0.6);
-  --text-dim: rgba(160, 180, 220, 0.35);
-  --text-label: rgba(180, 200, 255, 0.4);
+  /* Backgrounds */
+  --bg-deep: #05050F;
+  --bg-space: #06061A;
+  --bg-panel: linear-gradient(
+    135deg,
+    rgba(240, 238, 248, 0.015) 0%,
+    rgba(200, 196, 220, 0.035) 50%,
+    rgba(240, 238, 248, 0.01) 100%
+  );
+
+  /* Text — using Lunata's selenite-white and moonsilver */
+  --text-primary: #F0EEF8;
+  --text-secondary: rgba(200, 196, 220, 0.7);
+  --text-dim: rgba(200, 196, 220, 0.4);
+  --text-label: rgba(200, 196, 220, 0.5);
 
   /* Accents — warm gold reserved for clock and special highlights */
-  --accent-gold: rgba(230, 200, 120, 0.9);
+  --accent-gold: #E8C97A;
   --accent-lunar: rgba(255, 250, 235, 0.9);
   --accent-schumann: rgba(120, 180, 255, 0.9);
   --accent-kp-calm: rgba(100, 220, 170, 0.9);
@@ -26,9 +38,9 @@
   --accent-tidal: rgba(80, 180, 230, 0.9);
   --accent-binara: rgba(160, 120, 255, 0.8);
 
-  /* Glass borders */
-  --border-glass: rgba(255, 255, 255, 0.06);
-  --border-glass-highlight: rgba(255, 255, 255, 0.12);
+  /* Glass borders — matching Lunata's moonsilver-based borders */
+  --border-glass: rgba(200, 196, 220, 0.07);
+  --border-glass-highlight: rgba(200, 196, 220, 0.15);
 
   /* Status badge backgrounds */
   --badge-calm-bg: rgba(100, 220, 170, 0.1);
@@ -36,12 +48,12 @@
   --badge-storm-bg: rgba(255, 80, 60, 0.12);
 
   /* Legacy aliases — panels still referencing old names */
-  --text-brass: rgba(180, 200, 255, 0.4);
-  --text-brass-dim: rgba(160, 180, 220, 0.35);
-  --text-brass-faint: rgba(140, 160, 200, 0.25);
-  --text-value: rgba(220, 230, 255, 0.9);
-  --border-brass: rgba(255, 255, 255, 0.06);
-  --border-brass-strong: rgba(255, 255, 255, 0.12);
+  --text-brass: rgba(200, 196, 220, 0.5);
+  --text-brass-dim: rgba(200, 196, 220, 0.4);
+  --text-brass-faint: rgba(200, 196, 220, 0.25);
+  --text-value: #F0EEF8;
+  --border-brass: rgba(200, 196, 220, 0.07);
+  --border-brass-strong: rgba(200, 196, 220, 0.15);
   --status-calm: rgba(100, 220, 170, 0.9);
   --status-elevated: rgba(255, 150, 80, 0.9);
   --status-storm: rgba(255, 80, 60, 0.9);
@@ -62,7 +74,6 @@
   /* Colours */
   --color-bg-primary: var(--bg-deep);
   --color-bg-secondary: var(--bg-space);
-  --color-bg-panel: var(--bg-panel);
   --color-border-brass: var(--border-glass);
   --color-border-brass-strong: var(--border-glass-highlight);
   --color-text-brass: var(--text-label);
@@ -93,6 +104,8 @@
   --animate-tide-arrow: tideArrow 1.5s ease-in-out infinite;
   --animate-tide-arrow-down: tideArrowDown 1.5s ease-in-out infinite;
   --animate-value-slide: valueSlideIn 0.4s ease-out;
+  --animate-card-reveal: cardReveal 0.8s ease-out forwards;
+  --animate-dust-drift: dustDrift 60s linear infinite;
 }
 
 /* ============================================================
@@ -107,14 +120,14 @@
 @keyframes panelGlow {
   0%, 100% {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-      0 4px 30px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(200, 196, 220, 0.03) inset,
+      0 8px 32px rgba(0, 0, 0, 0.35),
       0 0 60px rgba(80, 120, 200, 0.03);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-      0 4px 30px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(200, 196, 220, 0.04) inset,
+      0 8px 32px rgba(0, 0, 0, 0.35),
       0 0 80px rgba(80, 120, 200, 0.05);
   }
 }
@@ -127,6 +140,17 @@
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes badgeEnter {
@@ -172,15 +196,53 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Animated border rotation — requires @property for CSS Houdini */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes borderRotate {
+  to { --border-angle: 360deg; }
+}
+
+/* Cosmic dust drift */
+@keyframes dustDrift {
+  0% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-30px) translateX(15px); }
+  100% { transform: translateY(0) translateX(0); }
+}
+
+/* Tidal wave animations — 3 layers at different speeds */
+@keyframes waveSlide1 {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes waveSlide2 {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes waveSlide3 {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes foamSparkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
 /* ============================================================
    Base Styles
    ============================================================ */
 
 body {
-  background: var(--bg-deep);
+  background: var(--void-black);
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============================================================
@@ -233,7 +295,7 @@ body {
   font-family: var(--font-mono);
   font-size: clamp(14px, 1.1vw, 18px);
   font-weight: 300;
-  color: rgba(220, 230, 255, 0.75);
+  color: rgba(240, 238, 248, 0.75);
 }
 
 .insight-text {
@@ -258,28 +320,45 @@ body {
 }
 
 /* ============================================================
-   Panel Component — Glass Morphism
+   Glass Card — Copied from Lunata (exact values)
    ============================================================ */
 
-.panel {
+.glass-card {
   position: relative;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-glass);
+  background: linear-gradient(
+    135deg,
+    rgba(240, 238, 248, 0.015) 0%,
+    rgba(200, 196, 220, 0.035) 50%,
+    rgba(240, 238, 248, 0.01) 100%
+  );
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid rgba(200, 196, 220, 0.07);
   border-radius: 16px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  padding: clamp(16px, 1.2vw, 28px);
-  overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 4px 30px rgba(0, 0, 0, 0.3),
-    0 0 60px rgba(80, 120, 200, 0.03);
-  animation: slideIn 0.6s ease-out both;
+    0 0 0 1px rgba(200, 196, 220, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  padding: clamp(16px, 1.2vw, 28px);
+  transition: background 1.2s ease-out, backdrop-filter 1.2s ease-out, border-color 0.8s ease-out, box-shadow 0.8s ease-out;
+  animation: cardReveal 0.8s ease-out forwards;
+  opacity: 0;
 }
 
-/* Subtle top edge light — like light catching glass */
-.panel::before {
-  content: "";
+/* Subtle hover brighten — for when you walk up to the monitor */
+.glass-card:hover {
+  border-color: rgba(200, 196, 220, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(200, 196, 220, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 0 40px rgba(200, 196, 220, 0.03);
+}
+
+/* Top edge highlight — simulates light catching the glass edge */
+.glass-card::before {
+  content: '';
   position: absolute;
   top: 0;
   left: 10%;
@@ -288,29 +367,166 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.12),
+    rgba(240, 238, 248, 0.15),
     transparent
   );
   pointer-events: none;
 }
+
+/* Animated gradient border glow — rotating conic gradient */
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 60%,
+    rgba(200, 196, 220, 0.1) 80%,
+    rgba(232, 201, 122, 0.08) 90%,
+    transparent 100%
+  );
+  z-index: -1;
+  animation: borderRotate 8s linear infinite;
+}
+
+/* Legacy .panel class — redirects to glass-card for backwards compat */
+.panel {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 238, 248, 0.015) 0%,
+    rgba(200, 196, 220, 0.035) 50%,
+    rgba(240, 238, 248, 0.01) 100%
+  );
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid rgba(200, 196, 220, 0.07);
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px rgba(200, 196, 220, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  padding: clamp(16px, 1.2vw, 28px);
+  transition: background 1.2s ease-out, backdrop-filter 1.2s ease-out, border-color 0.8s ease-out, box-shadow 0.8s ease-out;
+  animation: cardReveal 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* Subtle hover brighten — for when you walk up to the monitor */
+.panel:hover {
+  border-color: rgba(200, 196, 220, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(200, 196, 220, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 0 40px rgba(200, 196, 220, 0.03);
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(240, 238, 248, 0.15),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 60%,
+    rgba(200, 196, 220, 0.1) 80%,
+    rgba(232, 201, 122, 0.08) 90%,
+    transparent 100%
+  );
+  z-index: -1;
+  animation: borderRotate 8s linear infinite;
+}
+
+/* Stagger children — for grid containers */
+.card-stagger > *:nth-child(1) { animation-delay: 0s; }
+.card-stagger > *:nth-child(2) { animation-delay: 0.15s; }
+.card-stagger > *:nth-child(3) { animation-delay: 0.3s; }
+.card-stagger > *:nth-child(4) { animation-delay: 0.45s; }
+.card-stagger > *:nth-child(5) { animation-delay: 0.6s; }
+.card-stagger > *:nth-child(6) { animation-delay: 0.75s; }
+.card-stagger > *:nth-child(7) { animation-delay: 0.9s; }
 
 /* ============================================================
    Dashboard Grid — Responsive
    ============================================================ */
 
 .dashboard-grid {
-  grid-template-columns: 1fr 1.2fr 1fr;
-  gap: clamp(12px, 1vw, 20px);
-  padding: clamp(10px, 0.8vw, 16px) clamp(20px, 1.5vw, 28px) clamp(12px, 1vw, 20px);
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+  padding: 16px 20px;
 }
 
 /* ============================================================
-   Deep Space Background Layers
+   Cosmic Atmosphere Background — from Lunata
    ============================================================ */
 
+.cosmic-atmosphere {
+  background:
+    /* Upper nebula glow */
+    radial-gradient(ellipse 80% 40% at 50% 15%, rgba(15, 12, 45, 0.6) 0%, transparent 100%),
+    /* Left nebula wisp */
+    radial-gradient(ellipse 40% 50% at 15% 60%, rgba(20, 15, 55, 0.25) 0%, transparent 100%),
+    /* Right nebula wisp */
+    radial-gradient(ellipse 35% 45% at 85% 45%, rgba(15, 18, 50, 0.2) 0%, transparent 100%),
+    /* Lower depth zone */
+    radial-gradient(ellipse 60% 30% at 50% 85%, rgba(12, 10, 35, 0.3) 0%, transparent 100%),
+    /* Centre subtle warmth */
+    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(25, 18, 45, 0.15) 0%, transparent 100%),
+    /* Base void */
+    #05050F;
+}
+
+/* Floating cosmic dust particles — from Lunata */
+.cosmic-dust {
+  position: relative;
+}
+
+.cosmic-dust::before {
+  content: '';
+  position: absolute;
+  inset: -50px;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(200, 196, 220, 0.15) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 70%, rgba(200, 196, 220, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 20%, rgba(200, 196, 220, 0.12) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 50%, rgba(232, 201, 122, 0.08) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 10% 80%, rgba(200, 196, 220, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 90%, rgba(200, 196, 220, 0.08) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 10%, rgba(232, 201, 122, 0.06) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 50%, rgba(200, 196, 220, 0.1) 0%, transparent 100%);
+  background-size: 300px 300px;
+  animation: dustDrift 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Legacy bg-deep-space — replaced with cosmic-atmosphere */
 .bg-deep-space {
   background:
-    radial-gradient(ellipse at 70% 30%, rgba(100, 60, 180, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 20% 70%, rgba(40, 100, 160, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 20%, #0d1528 0%, #080c18 40%, #050810 100%);
+    radial-gradient(ellipse 80% 40% at 50% 15%, rgba(15, 12, 45, 0.6) 0%, transparent 100%),
+    radial-gradient(ellipse 40% 50% at 15% 60%, rgba(20, 15, 55, 0.25) 0%, transparent 100%),
+    radial-gradient(ellipse 35% 45% at 85% 45%, rgba(15, 18, 50, 0.2) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 30% at 50% 85%, rgba(12, 10, 35, 0.3) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(25, 18, 45, 0.15) 0%, transparent 100%),
+    #05050F;
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
 import { AlertBadges } from "@/components/dashboard/AlertBadges";
 import { StarField } from "@/components/shared/StarField";
-import { TartarianClock } from "@/components/clock/TartarianClock";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", {
@@ -15,71 +14,53 @@ function formatDate(date: Date): string {
   });
 }
 
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
 export default function Home() {
   const [dateStr, setDateStr] = useState("");
-  const [timeStr, setTimeStr] = useState("");
 
   useEffect(() => {
     function tick() {
-      const now = new Date();
-      setDateStr(formatDate(now));
-      setTimeStr(formatTime(now));
+      setDateStr(formatDate(new Date()));
     }
     tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 60_000); // Date changes once per minute is plenty
     return () => clearInterval(id);
   }, []);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden relative bg-deep-space">
-      {/* Star field — fixed behind everything */}
+    <div className="h-screen w-screen flex flex-col overflow-hidden relative cosmic-atmosphere cosmic-dust">
+      {/* Star field — fixed behind everything (Lunata CosmicBackground) */}
       <StarField />
 
-      {/* Top bar */}
+      {/* Top bar — slim, transparent, 40px */}
       <header
         className="relative flex items-center justify-between shrink-0"
-        style={{ padding: "10px 24px 0", zIndex: 1 }}
+        style={{
+          height: 40,
+          padding: "0 20px",
+          zIndex: 1,
+          background: "linear-gradient(180deg, rgba(5,5,15,0.4) 0%, transparent 100%)",
+        }}
       >
-        {/* Left: Clock + digital time + date */}
-        <div className="flex items-center gap-3">
-          <TartarianClock size={52} />
-          <div className="flex flex-col">
-            <span
-              className="font-mono text-sm tracking-widest"
-              style={{ color: "var(--accent-gold)", fontWeight: 300 }}
-            >
-              {timeStr}
-            </span>
-            <time
-              className="font-body text-xs tracking-wide"
-              style={{ color: "var(--text-dim)" }}
-            >
-              {dateStr}
-            </time>
-          </div>
-        </div>
+        {/* Left: Branding */}
+        <h1
+          className="font-display text-xs tracking-[0.25em] uppercase"
+          style={{ color: "var(--moonsilver)", opacity: 0.5 }}
+        >
+          Harmonic Waves
+        </h1>
 
         {/* Centre: Alert badges */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
           <AlertBadges />
         </div>
 
-        {/* Right: Branding */}
-        <h1
-          className="font-display text-xs tracking-[0.25em] uppercase"
-          style={{ color: "var(--text-dim)" }}
+        {/* Right: Date */}
+        <time
+          className="font-body text-xs tracking-wide"
+          style={{ color: "var(--moonsilver)", opacity: 0.4 }}
         >
-          Harmonic Waves
-        </h1>
+          {dateStr}
+        </time>
       </header>
 
       {/* Dashboard grid */}

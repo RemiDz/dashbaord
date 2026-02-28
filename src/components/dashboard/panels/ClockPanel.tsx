@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { TartarianClock } from "@/components/clock/TartarianClock";
-import { getBinaraRecommendation, type BinaraRecommendation } from "@/lib/binara-engine";
-import { useKpIndex } from "@/hooks/useKpIndex";
-import { useSchumannData } from "@/hooks/useSchumannData";
 
 interface ClockPanelProps {
   style?: React.CSSProperties;
@@ -21,6 +18,15 @@ function formatTime(d: Date): string {
   });
 }
 
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function getTimezone(): string {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -32,19 +38,21 @@ function getTimezone(): string {
 
 export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
   const [time, setTime] = useState("");
-  const [rec, setRec] = useState<BinaraRecommendation | null>(null);
+  const [date, setDate] = useState("");
   const [tz, setTz] = useState("");
 
-  const { current: kp } = useKpIndex();
-  const { deviation } = useSchumannData();
-
-  // Responsive clock size: scale with viewport width
-  const [clockSize, setClockSize] = useState(200);
+  // Responsive clock size — large, filling most of the card
+  const [clockSize, setClockSize] = useState(280);
   useEffect(() => {
     function updateSize() {
       const vw = window.innerWidth;
-      // 170px at 1366, 200px at 1920, 240px at 2560, 280px at 3840
-      setClockSize(Math.round(Math.min(280, Math.max(170, vw * 0.104))));
+      const vh = window.innerHeight;
+      // Use the smaller of width-based and height-based scaling
+      // Width: panel is ~4/12 of viewport = 33%, clock should be ~75% of that
+      const fromWidth = Math.round(vw * 0.25);
+      // Height: row 1 is ~50% of viewport minus header, clock takes most of it
+      const fromHeight = Math.round((vh - 56) * 0.42);
+      setClockSize(Math.min(400, Math.max(200, Math.min(fromWidth, fromHeight))));
     }
     updateSize();
     window.addEventListener("resize", updateSize);
@@ -55,82 +63,60 @@ export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
     function tick() {
       const now = new Date();
       setTime(formatTime(now));
-      setRec(getBinaraRecommendation(now.getHours(), { kp, schumannDeviation: deviation }));
+      setDate(formatDate(now));
     }
-
     tick();
     setTz(getTimezone());
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [kp, deviation]);
+  }, []);
 
   return (
     <Panel
-      className="flex flex-col items-center"
+      className="flex flex-col items-center justify-center"
       style={style}
       animationDelay={animationDelay}
     >
-      {/* Tartarian Clock */}
-      <div className="mt-1">
+      {/* Tartarian Clock — hero element, fills most of the card */}
+      <div className="flex-1 flex items-center justify-center">
         <TartarianClock size={clockSize} />
       </div>
 
-      {/* Digital time */}
+      {/* Digital time — large, gold */}
       <div
-        className="font-mono text-xl tracking-widest mt-3"
+        className="font-mono tracking-widest mt-2"
         style={{
-          color: "var(--text-value)",
+          color: "var(--accent-gold)",
           fontWeight: 300,
+          fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
         }}
       >
         {time}
       </div>
 
-      {/* Timezone */}
-      <p className="value-sub mt-0.5 text-[0.65rem]" style={{ color: "var(--text-brass-faint)" }}>
-        {tz}
+      {/* Date */}
+      <p
+        className="font-body tracking-wide mt-1"
+        style={{
+          color: "var(--moonsilver)",
+          opacity: 0.5,
+          fontSize: "clamp(0.7rem, 0.9vw, 0.85rem)",
+        }}
+      >
+        {date}
       </p>
 
-      {/* Sacred divider */}
-      <div
-        className="w-12 mx-auto my-3"
+      {/* Timezone — faint */}
+      <p
+        className="font-body mt-0.5"
         style={{
-          height: "1px",
-          background: "linear-gradient(90deg, transparent, rgba(205,170,110,0.3), transparent)",
+          color: "var(--moonsilver)",
+          opacity: 0.25,
+          fontSize: "clamp(0.55rem, 0.65vw, 0.65rem)",
         }}
-      />
-
-      {/* Binara recommended frequency card */}
-      {rec && (
-        <div
-          className="w-full rounded-sm px-3 py-2"
-          style={{
-            border: `1px solid ${rec.color.replace(/[\d.]+\)$/, "0.2)")}`,
-            background: rec.color.replace(/[\d.]+\)$/, "0.05)"),
-          }}
-        >
-          <span
-            className="panel-label"
-            style={{ fontSize: "0.55rem", letterSpacing: "0.15em" }}
-          >
-            Binara · Recommended
-          </span>
-          <div className="mt-1" style={{ color: rec.color }}>
-            <span className="font-mono text-sm font-light">
-              {rec.frequency} Hz
-            </span>
-            <span className="font-body text-sm ml-1.5" style={{ fontWeight: 300 }}>
-              {rec.band}
-            </span>
-          </div>
-          <p
-            className="font-body text-xs mt-0.5"
-            style={{ color: "var(--text-brass-dim)", fontWeight: 300 }}
-          >
-            {rec.description}
-          </p>
-        </div>
-      )}
+      >
+        {tz}
+      </p>
     </Panel>
   );
 }

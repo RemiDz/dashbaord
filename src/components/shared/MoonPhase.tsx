@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface MoonPhaseProps {
   /** 0–1, fraction of disc illuminated */
@@ -11,248 +11,272 @@ interface MoonPhaseProps {
   size?: number;
 }
 
-/**
- * Realistic moon rendered on canvas with layered surface texture,
- * soft terminator, ambient glow with breathing animation.
- */
-export function MoonPhase({ illumination, phase, size = 130 }: MoonPhaseProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
+/* ── Seeded RNG for reproducible crater placement ── */
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
 
-  useEffect(() => {
+/* ── Pre-rendered moon texture (copied from Lunata's MoonCanvas) ── */
+function createMoonTexture(texSize: number): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = c.height = texSize;
+  const ctx = c.getContext("2d")!;
+  const cx = texSize / 2;
+  const cy = texSize / 2;
+  const r = texSize / 2;
+
+  // Base sphere gradient — highlight offset upper-left
+  const base = ctx.createRadialGradient(
+    cx - r * 0.15, cy - r * 0.1, r * 0.05,
+    cx, cy, r,
+  );
+  base.addColorStop(0, "#d8d4e4");
+  base.addColorStop(0.2, "#c4c0d2");
+  base.addColorStop(0.45, "#a8a4b6");
+  base.addColorStop(0.65, "#8c889a");
+  base.addColorStop(0.82, "#6c687a");
+  base.addColorStop(1, "#3c3848");
+  ctx.fillStyle = base;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Maria — 8 positioned dark mare patches (realistic positions)
+  const maria = [
+    { x: 0.34, y: 0.30, rx: 0.14, ry: 0.12, a: 0.2 },
+    { x: 0.26, y: 0.48, rx: 0.13, ry: 0.20, a: 0.16 },
+    { x: 0.53, y: 0.30, rx: 0.08, ry: 0.09, a: 0.18 },
+    { x: 0.57, y: 0.43, rx: 0.10, ry: 0.09, a: 0.17 },
+    { x: 0.72, y: 0.33, rx: 0.05, ry: 0.065, a: 0.2 },
+    { x: 0.40, y: 0.62, rx: 0.09, ry: 0.07, a: 0.14 },
+    { x: 0.64, y: 0.56, rx: 0.07, ry: 0.06, a: 0.12 },
+    { x: 0.30, y: 0.68, rx: 0.05, ry: 0.05, a: 0.14 },
+  ];
+  for (const m of maria) {
+    const mx = cx - r + m.x * 2 * r;
+    const my = cy - r + m.y * 2 * r;
+    const mr = Math.max(m.rx, m.ry) * r * 1.4;
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+    g.addColorStop(0, `rgba(20,16,36,${m.a})`);
+    g.addColorStop(0.5, `rgba(20,16,36,${m.a * 0.5})`);
+    g.addColorStop(1, "transparent");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Micro texture — 500 procedural craters
+  const rng = seededRandom(42);
+  for (let i = 0; i < 500; i++) {
+    const angle = rng() * Math.PI * 2;
+    const dist = rng() * r * 0.9;
+    const sx = cx + Math.cos(angle) * dist;
+    const sy = cy + Math.sin(angle) * dist;
+    const sr = 2 + rng() * 6;
+    const op = 0.015 + rng() * 0.03;
+    const dark = rng() > 0.45;
+    const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+    sg.addColorStop(
+      0,
+      dark ? `rgba(12,10,28,${op})` : `rgba(210,206,228,${op * 0.5})`,
+    );
+    sg.addColorStop(1, "transparent");
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Limb darkening
+  const v = ctx.createRadialGradient(cx, cy, r * 0.12, cx, cy, r);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(0.5, "rgba(0,0,0,0)");
+  v.addColorStop(0.75, "rgba(0,0,0,0.1)");
+  v.addColorStop(0.9, "rgba(0,0,0,0.35)");
+  v.addColorStop(1, "rgba(0,0,0,0.6)");
+  ctx.fillStyle = v;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  return c;
+}
+
+/**
+ * Realistic moon rendered on canvas — matched to Lunata's MoonCanvas.
+ *
+ * Features: pre-rendered 512px texture with maria and craters,
+ * 4-layer penumbral terminator, earthshine, gold warmth near full,
+ * 3-layer breathing glow with frame counter, bright limb outline.
+ */
+export function MoonPhase({ illumination, phase, size = 200 }: MoonPhaseProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const moonTexRef = useRef<HTMLCanvasElement | null>(null);
+  const frameRef = useRef(0);
+  const rafRef = useRef(0);
+
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    // Canvas needs extra space for the ambient glow (2x radius)
-    const glowPad = size * 0.6;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const glowPad = size * 0.5;
     const totalSize = size + glowPad * 2;
 
-    canvas.width = totalSize * dpr;
-    canvas.height = totalSize * dpr;
-    canvas.style.width = `${totalSize}px`;
-    canvas.style.height = `${totalSize}px`;
+    // Only resize if needed
+    const expectedW = Math.round(totalSize * dpr);
+    if (canvas.width !== expectedW) {
+      canvas.width = expectedW;
+      canvas.height = expectedW;
+      canvas.style.width = `${totalSize}px`;
+      canvas.style.height = `${totalSize}px`;
+      ctx.scale(dpr, dpr);
+    }
 
+    const f = frameRef.current++;
+    const moonTex = moonTexRef.current;
+    const r = size / 2;
     const cx = totalSize / 2;
     const cy = totalSize / 2;
-    const moonR = size / 2;
 
-    // Seeded pseudo-random for consistent crater placement
-    function seededRandom(seed: number) {
-      let s = seed;
-      return () => {
-        s = (s * 16807 + 0) % 2147483647;
-        return s / 2147483647;
-      };
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, totalSize, totalSize);
+
+    // ── Breathing glow (3 concentric layers) ──
+    const breathe = Math.sin(f * 0.005) * 0.05 + 0.95;
+    const glowLayers = [
+      { m: 2.2, o: 0.01 },
+      { m: 1.7, o: 0.025 },
+      { m: 1.35, o: 0.05 },
+    ];
+    for (const l of glowLayers) {
+      const g = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * l.m);
+      const op = l.o * illumination * breathe;
+      g.addColorStop(0, `rgba(200,196,220,${op})`);
+      g.addColorStop(0.5, `rgba(190,185,215,${op * 0.3})`);
+      g.addColorStop(1, "transparent");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * l.m, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // Pre-generate crater positions (consistent across frames)
-    const rng = seededRandom(42);
-    const craters: { x: number; y: number; r: number; depth: number }[] = [];
-    // Large mare (dark patches)
-    for (let i = 0; i < 6; i++) {
-      const angle = rng() * Math.PI * 2;
-      const dist = rng() * moonR * 0.6;
-      craters.push({
-        x: cx + Math.cos(angle) * dist,
-        y: cy + Math.sin(angle) * dist,
-        r: moonR * (0.15 + rng() * 0.2),
-        depth: 0.12 + rng() * 0.08,
-      });
-    }
-    // Medium craters
-    for (let i = 0; i < 12; i++) {
-      const angle = rng() * Math.PI * 2;
-      const dist = rng() * moonR * 0.85;
-      craters.push({
-        x: cx + Math.cos(angle) * dist,
-        y: cy + Math.sin(angle) * dist,
-        r: moonR * (0.04 + rng() * 0.08),
-        depth: 0.06 + rng() * 0.06,
-      });
-    }
-    // Small craters
-    for (let i = 0; i < 20; i++) {
-      const angle = rng() * Math.PI * 2;
-      const dist = rng() * moonR * 0.92;
-      craters.push({
-        x: cx + Math.cos(angle) * dist,
-        y: cy + Math.sin(angle) * dist,
-        r: moonR * (0.015 + rng() * 0.03),
-        depth: 0.03 + rng() * 0.04,
-      });
+    // ── Gold warmth near full ──
+    if (illumination > 0.3) {
+      const gi = ((illumination - 0.3) / 0.7) * breathe;
+      const gg = ctx.createRadialGradient(cx, cy, r, cx, cy, r * 1.9);
+      gg.addColorStop(0, `rgba(232,201,122,${0.025 * gi})`);
+      gg.addColorStop(0.5, `rgba(232,201,122,${0.008 * gi})`);
+      gg.addColorStop(1, "transparent");
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.9, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    function draw() {
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx!.clearRect(0, 0, totalSize, totalSize);
+    // ── Moon texture ──
+    if (moonTex) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(moonTex, cx - r, cy - r, r * 2, r * 2);
+      ctx.restore();
+    }
 
-      // --- Breathing glow animation ---
-      const time = Date.now() / 1000;
-      const breathe = 0.85 + 0.15 * Math.sin(time * 0.8); // Slow breathing
+    // ── Terminator — 4 penumbral passes + hard shadow ──
+    const pa = phase * Math.PI * 2;
+    const k = Math.cos(pa);
+    const isWax = Math.sin(pa) >= 0;
+    const steps = 90;
 
-      // --- Ambient glow (2x radius) ---
-      const glowR = moonR * 2;
-      const glowAlpha = 0.08 * breathe * Math.max(0.3, illumination);
-      const ambientGlow = ctx!.createRadialGradient(cx, cy, moonR * 0.8, cx, cy, glowR);
-      ambientGlow.addColorStop(0, `rgba(230, 235, 255, ${glowAlpha})`);
-      ambientGlow.addColorStop(0.4, `rgba(200, 210, 240, ${glowAlpha * 0.5})`);
-      ambientGlow.addColorStop(1, "rgba(200, 210, 240, 0)");
-      ctx!.fillStyle = ambientGlow;
-      ctx!.beginPath();
-      ctx!.arc(cx, cy, glowR, 0, Math.PI * 2);
-      ctx!.fill();
-
-      // --- Clip to moon disc ---
-      ctx!.save();
-      ctx!.beginPath();
-      ctx!.arc(cx, cy, moonR, 0, Math.PI * 2);
-      ctx!.clip();
-
-      // --- Base surface: dark side ---
-      const baseSurface = ctx!.createRadialGradient(
-        cx - moonR * 0.2, cy - moonR * 0.15, moonR * 0.1,
-        cx, cy, moonR
-      );
-      baseSurface.addColorStop(0, "rgb(35, 38, 48)");
-      baseSurface.addColorStop(0.5, "rgb(25, 27, 35)");
-      baseSurface.addColorStop(1, "rgb(18, 20, 28)");
-      ctx!.fillStyle = baseSurface;
-      ctx!.fillRect(cx - moonR, cy - moonR, moonR * 2, moonR * 2);
-
-      // --- Surface texture: mare (dark patches) and highlands ---
-      for (const crater of craters) {
-        const cg = ctx!.createRadialGradient(
-          crater.x, crater.y, 0,
-          crater.x, crater.y, crater.r
-        );
-        cg.addColorStop(0, `rgba(15, 18, 25, ${crater.depth})`);
-        cg.addColorStop(0.6, `rgba(20, 22, 30, ${crater.depth * 0.6})`);
-        cg.addColorStop(1, "rgba(20, 22, 30, 0)");
-        ctx!.fillStyle = cg;
-        ctx!.beginPath();
-        ctx!.arc(crater.x, crater.y, crater.r, 0, Math.PI * 2);
-        ctx!.fill();
+    // Penumbral layers (soft terminator edge)
+    for (const pp of [
+      { o: 0.06, a: 0.08 },
+      { o: 0.035, a: 0.2 },
+      { o: 0.015, a: 0.4 },
+      { o: 0.005, a: 0.65 },
+    ]) {
+      const pk = k + (isWax ? -1 : 1) * pp.o;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, isWax);
+      for (let i = 0; i <= steps; i++) {
+        const a = Math.PI / 2 - (i / steps) * Math.PI;
+        ctx.lineTo(cx + pk * r * Math.cos(a), cy + r * Math.sin(a));
       }
-
-      // --- Highland highlights (lighter patches) ---
-      const hlRng = seededRandom(99);
-      for (let i = 0; i < 8; i++) {
-        const angle = hlRng() * Math.PI * 2;
-        const dist = hlRng() * moonR * 0.7;
-        const hx = cx + Math.cos(angle) * dist;
-        const hy = cy + Math.sin(angle) * dist;
-        const hr = moonR * (0.08 + hlRng() * 0.12);
-
-        const hg = ctx!.createRadialGradient(hx, hy, 0, hx, hy, hr);
-        hg.addColorStop(0, `rgba(60, 65, 80, ${0.08 + hlRng() * 0.06})`);
-        hg.addColorStop(1, "rgba(60, 65, 80, 0)");
-        ctx!.fillStyle = hg;
-        ctx!.beginPath();
-        ctx!.arc(hx, hy, hr, 0, Math.PI * 2);
-        ctx!.fill();
-      }
-
-      // --- Illumination: terminator with soft gradient ---
-      // phase 0→0.5 = waxing (right side lit), 0.5→1 = waning (left side lit)
-      const sweep = Math.cos(phase * 2 * Math.PI);
-      const rightLit = phase <= 0.5;
-
-      // Draw illumination as a gradient overlay
-      // We'll draw the lit portion by creating a mask effect
-      // The terminator position is determined by the sweep factor
-      const litCx = cx + sweep * moonR * 0.5;
-
-      // Create a wide gradient for the illuminated area
-      const terminatorWidth = moonR * 0.15; // Soft edge width
-
-      // Draw illumination using vertical strips for smooth terminator
-      const steps = 100;
-      for (let i = 0; i < steps; i++) {
-        const x = cx - moonR + (i / steps) * moonR * 2;
-        const stripW = (moonR * 2) / steps + 1;
-
-        // Calculate how lit this x position is
-        // Normalise x position relative to centre: -1 (left) to 1 (right)
-        const nx = (x - cx) / moonR;
-
-        // The terminator position on the normalised scale
-        let litAmount: number;
-        if (rightLit) {
-          // Right side lit: lit when nx > sweep threshold
-          litAmount = smoothstep(sweep - 0.15, sweep + 0.15, nx);
-        } else {
-          // Left side lit: lit when nx < -sweep threshold
-          litAmount = smoothstep(sweep + 0.15, sweep - 0.15, nx);
-        }
-
-        if (litAmount <= 0) continue;
-
-        // Lit colour: warm cream white
-        const alpha = litAmount * 0.85;
-        ctx!.fillStyle = `rgba(240, 235, 215, ${alpha})`;
-        ctx!.fillRect(x, cy - moonR, stripW, moonR * 2);
-      }
-
-      // --- Crater shadows on lit side (subtle depth) ---
-      for (const crater of craters) {
-        const nx = (crater.x - cx) / moonR;
-        let litAmount: number;
-        if (rightLit) {
-          litAmount = smoothstep(sweep - 0.15, sweep + 0.15, nx);
-        } else {
-          litAmount = smoothstep(sweep + 0.15, sweep - 0.15, nx);
-        }
-
-        if (litAmount > 0.3) {
-          // Subtle shadow on lit craters for depth
-          const shadowAlpha = litAmount * crater.depth * 0.5;
-          const sg = ctx!.createRadialGradient(
-            crater.x - crater.r * 0.2, crater.y - crater.r * 0.2, 0,
-            crater.x, crater.y, crater.r * 0.8
-          );
-          sg.addColorStop(0, `rgba(180, 170, 145, ${shadowAlpha})`);
-          sg.addColorStop(0.5, `rgba(120, 115, 95, ${shadowAlpha * 0.4})`);
-          sg.addColorStop(1, "rgba(120, 115, 95, 0)");
-          ctx!.fillStyle = sg;
-          ctx!.beginPath();
-          ctx!.arc(crater.x, crater.y, crater.r * 0.8, 0, Math.PI * 2);
-          ctx!.fill();
-        }
-      }
-
-      // --- Limb darkening (edge of moon is darker) ---
-      const limbDark = ctx!.createRadialGradient(cx, cy, moonR * 0.5, cx, cy, moonR);
-      limbDark.addColorStop(0, "rgba(0, 0, 0, 0)");
-      limbDark.addColorStop(0.7, "rgba(0, 0, 0, 0)");
-      limbDark.addColorStop(1, "rgba(0, 0, 0, 0.35)");
-      ctx!.fillStyle = limbDark;
-      ctx!.beginPath();
-      ctx!.arc(cx, cy, moonR, 0, Math.PI * 2);
-      ctx!.fill();
-
-      ctx!.restore(); // Unclip
-
-      // --- Thin ring around moon edge ---
-      ctx!.beginPath();
-      ctx!.arc(cx, cy, moonR, 0, Math.PI * 2);
-      ctx!.strokeStyle = `rgba(200, 210, 230, ${0.08 * breathe})`;
-      ctx!.lineWidth = 0.5;
-      ctx!.stroke();
-
-      animRef.current = requestAnimationFrame(draw);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(6,6,26,${pp.a})`;
+      ctx.fill();
+      ctx.restore();
     }
 
-    draw();
+    // Hard shadow
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, isWax);
+    for (let i = 0; i <= steps; i++) {
+      const a = Math.PI / 2 - (i / steps) * Math.PI;
+      ctx.lineTo(cx + k * r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.fillStyle = "rgba(6,6,26,0.97)";
+    ctx.fill();
+    ctx.restore();
 
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [illumination, phase, size]);
+    // ── Earthshine (faint blue on dark side near new moon) ──
+    if (illumination < 0.4) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      const esx = isWax ? cx - r * 0.4 : cx + r * 0.4;
+      const esg = ctx.createRadialGradient(esx, cy, r * 0.2, cx, cy, r);
+      const esi = (0.4 - illumination) * 0.04;
+      esg.addColorStop(0, `rgba(110,130,185,${esi})`);
+      esg.addColorStop(0.5, `rgba(80,100,155,${esi * 0.2})`);
+      esg.addColorStop(1, "transparent");
+      ctx.fillStyle = esg;
+      ctx.fillRect(0, 0, totalSize, totalSize);
+      ctx.restore();
+    }
 
-  const glowPad = size * 0.6;
+    // ── Bright limb ──
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(220,218,240,${0.06 + illumination * 0.06})`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+
+    ctx.restore();
+    rafRef.current = requestAnimationFrame(draw);
+  }, [phase, illumination, size]);
+
+  useEffect(() => {
+    if (!moonTexRef.current) {
+      moonTexRef.current = createMoonTexture(512);
+    }
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [draw]);
+
+  const glowPad = size * 0.5;
   const totalSize = size + glowPad * 2;
 
   return (
@@ -262,15 +286,8 @@ export function MoonPhase({ illumination, phase, size = 130 }: MoonPhaseProps) {
       style={{
         width: totalSize,
         height: totalSize,
-        // Offset the glow padding so the moon itself aligns as expected
         margin: -glowPad,
       }}
     />
   );
-}
-
-/** Smooth interpolation between edges — GLSL-style smoothstep */
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
 }

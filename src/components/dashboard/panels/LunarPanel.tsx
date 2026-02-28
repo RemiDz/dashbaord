@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { MoonPhase } from "@/components/shared/MoonPhase";
 import { useLunarData } from "@/hooks/useLunarData";
@@ -43,16 +43,16 @@ function PanelStars() {
         return seed / 2147483647;
       }
 
-      // Draw ~40 tiny star dots
-      for (let i = 0; i < 40; i++) {
+      // ~50 tiny star dots
+      for (let i = 0; i < 50; i++) {
         const x = rng() * w;
         const y = rng() * h;
         const r = 0.3 + rng() * 0.8;
-        const alpha = 0.08 + rng() * 0.15;
+        const alpha = 0.08 + rng() * 0.18;
 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 210, 240, ${alpha})`;
+        ctx.fillStyle = `rgba(200, 196, 220, ${alpha})`;
         ctx.fill();
       }
     }
@@ -79,8 +79,30 @@ function PanelStars() {
   );
 }
 
+/** Phase direction text — "Growing toward Full", "Waning toward New", etc. */
+function getPhaseDirection(phase: number): string {
+  if (phase < 0.025 || phase >= 0.975) return "New Moon";
+  if (phase < 0.5) return "Growing toward Full";
+  if (phase < 0.525) return "Full Moon";
+  return "Waning toward New";
+}
+
 export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: LunarPanelProps) {
   const lunar = useLunarData();
+
+  // Responsive moon size — large, filling most of the available space
+  const [moonSize, setMoonSize] = useState(220);
+  useEffect(() => {
+    function updateSize() {
+      const vh = window.innerHeight;
+      // Row 1 is ~50% of viewport minus header (~40px). Moon should be generous.
+      const available = (vh - 56) * 0.5;
+      setMoonSize(Math.min(320, Math.max(180, Math.round(available * 0.52))));
+    }
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
 
   return (
     <Panel
@@ -94,72 +116,128 @@ export const LunarPanel = memo(function LunarPanel({ style, animationDelay }: Lu
       {/* Panel label */}
       <span className="panel-label relative z-10">Lunar Phase</span>
 
-      {/* Moon centred prominently */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 my-2">
+      {/* Moon centred prominently — the hero element */}
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10">
         <MoonPhase
           illumination={lunar.illumination}
           phase={lunar.phase}
-          size={130}
+          size={moonSize}
         />
 
-        {/* Phase name below moon */}
+        {/* Phase name below moon — elegant serif */}
         <p
-          className="font-heading mt-1 text-center"
+          className="font-body text-center"
           style={{
-            color: "var(--text-primary)",
-            fontWeight: 500,
-            fontSize: "clamp(18px, 1.4vw, 24px)",
+            color: "var(--selenite-white)",
+            fontWeight: 400,
+            fontSize: "clamp(18px, 1.5vw, 24px)",
             letterSpacing: "1px",
+            marginTop: 4,
           }}
         >
           {lunar.phaseName}
         </p>
 
-        {/* Illumination */}
+        {/* Phase direction status */}
+        <p
+          className="font-body text-center"
+          style={{
+            color: "var(--moonsilver)",
+            opacity: 0.5,
+            fontStyle: "italic",
+            fontWeight: 300,
+            fontSize: "clamp(11px, 0.85vw, 14px)",
+            marginTop: 2,
+          }}
+        >
+          {getPhaseDirection(lunar.phase)}
+        </p>
+
+        {/* Illumination — large hero number */}
         <p
           className="font-mono text-center"
           style={{
-            color: "var(--accent-lunar)",
+            color: "var(--selenite-white)",
             fontWeight: 300,
             fontSize: "clamp(28px, 2.5vw, 38px)",
-            lineHeight: 1.1,
+            lineHeight: 1,
+            marginTop: 6,
           }}
         >
           {Math.round(lunar.illumination * 100)}%
           <span
-            className="value-unit"
-            style={{ fontSize: "clamp(14px, 1vw, 17px)" }}
+            className="font-body"
+            style={{
+              fontSize: "clamp(12px, 0.9vw, 15px)",
+              color: "var(--moonsilver)",
+              opacity: 0.4,
+              marginLeft: 6,
+            }}
           >
             illuminated
           </span>
         </p>
       </div>
 
-      {/* Divider */}
+      {/* Glass divider */}
       <div
         className="w-full relative z-10"
         style={{
-          height: "1px",
-          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
+          height: 1,
+          background: "linear-gradient(90deg, transparent, rgba(200, 196, 220, 0.08), transparent)",
         }}
       />
 
-      {/* Data arranged below moon: 3×2 grid */}
-      <div className="grid grid-cols-3 gap-x-4 gap-y-2 mt-3 relative z-10">
-        <InfoCell label="Sign" value={`${lunar.signSymbol} ${lunar.sign}`} />
-        <InfoCell label="Element" value={`${lunar.elementSymbol} ${lunar.element}`} />
-        <InfoCell label="Next Full" value={lunar.nextFull} />
-        <InfoCell label="Void of Course" value={lunar.voidOfCourse} colSpan />
+      {/* Data grid — arranged below moon */}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2 mt-3 relative z-10">
+        <InfoCell
+          label="Sign"
+          value={`${lunar.signSymbol} ${lunar.sign}`}
+        />
+        <InfoCell
+          label="Element"
+          value={`${lunar.elementSymbol} ${lunar.element}`}
+        />
+        <InfoCell
+          label="Next Full"
+          value={lunar.nextFull}
+        />
+        <InfoCell
+          label="Next New"
+          value={lunar.nextNew}
+        />
+        <InfoCell
+          label="Void of Course"
+          value={lunar.voidOfCourse}
+          colSpan
+        />
       </div>
     </Panel>
   );
 });
 
-function InfoCell({ label, value, colSpan }: { label: string; value: string; colSpan?: boolean }) {
+function InfoCell({
+  label,
+  value,
+  colSpan,
+}: {
+  label: string;
+  value: string;
+  colSpan?: boolean;
+}) {
   return (
-    <div style={colSpan ? { gridColumn: "span 3", textAlign: "center" } : undefined}>
+    <div
+      style={
+        colSpan ? { gridColumn: "span 2", textAlign: "center" } : undefined
+      }
+    >
       <p className="data-label">{label}</p>
-      <p className="data-value mt-0.5">{value}</p>
+      <p
+        className="data-value mt-0.5"
+        style={{ fontSize: "clamp(12px, 0.9vw, 15px)" }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

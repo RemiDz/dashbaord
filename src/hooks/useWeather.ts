@@ -11,6 +11,7 @@ export interface CurrentWeather {
   wind: number;
   sunrise: string;
   sunset: string;
+  pressure: number;
 }
 
 export interface ForecastDay {
