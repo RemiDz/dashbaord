@@ -44,101 +44,20 @@ function getPollutantColor(value: number | null, thresholds: number[]): string {
   return "rgba(255, 70, 50, 0.8)";
 }
 
-/** SVG semicircular AQI gauge */
-function AqiGauge({ aqi }: { aqi: number | null }) {
-  const size = 120;
-  const cx = size / 2;
-  const cy = size / 2 + 8;
-  const r = 46;
-  const strokeWidth = 8;
-
-  // Arc from 180° to 0° (left to right semicircle)
-  const startAngle = Math.PI;
-  const endAngle = 0;
-
-  // Clamp AQI 0-120 for gauge position
-  const clampedAqi = Math.min(120, Math.max(0, aqi ?? 0));
-  const fraction = clampedAqi / 120;
-  const needleAngle = startAngle - fraction * Math.PI;
-  const needleX = cx + r * Math.cos(needleAngle);
-  const needleY = cy - r * Math.sin(needleAngle);
-
-  // Arc path for background track
-  const arcStartX = cx + r * Math.cos(startAngle);
-  const arcStartY = cy - r * Math.sin(startAngle);
-  const arcEndX = cx + r * Math.cos(endAngle);
-  const arcEndY = cy - r * Math.sin(endAngle);
-  const arcPath = `M ${arcStartX} ${arcStartY} A ${r} ${r} 0 0 1 ${arcEndX} ${arcEndY}`;
-
+/** Minimal horizontal AQI bar with position marker */
+function AqiBar({ aqi }: { aqi: number | null }) {
   const status = aqi !== null ? getAqiStatus(aqi) : null;
+  // Position: clamp to 0–120, map to 0–100%
+  const pct = aqi !== null ? Math.min(100, Math.max(0, (Math.min(aqi, 120) / 120) * 100)) : 0;
 
   return (
-    <div style={{ position: "relative", width: size, height: size / 2 + 18 }}>
-      <svg width={size} height={size / 2 + 20} viewBox={`0 0 ${size} ${size / 2 + 20}`}>
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id="aqiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(80, 220, 120, 0.8)" />
-            <stop offset="25%" stopColor="rgba(180, 220, 80, 0.8)" />
-            <stop offset="50%" stopColor="rgba(240, 200, 60, 0.8)" />
-            <stop offset="75%" stopColor="rgba(255, 150, 60, 0.8)" />
-            <stop offset="100%" stopColor="rgba(255, 70, 50, 0.8)" />
-          </linearGradient>
-        </defs>
-
-        {/* Background track (dim) */}
-        <path
-          d={arcPath}
-          fill="none"
-          stroke="rgba(200, 196, 220, 0.06)"
-          strokeWidth={strokeWidth + 2}
-          strokeLinecap="round"
-        />
-
-        {/* Coloured arc */}
-        <path
-          d={arcPath}
-          fill="none"
-          stroke="url(#aqiGrad)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-
-        {/* Needle dot */}
-        {aqi !== null && (
-          <>
-            <circle
-              cx={needleX}
-              cy={needleY}
-              r={5}
-              fill={status?.color ?? "#fff"}
-              opacity={0.9}
-            />
-            <circle
-              cx={needleX}
-              cy={needleY}
-              r={8}
-              fill={status?.color ?? "#fff"}
-              opacity={0.2}
-            />
-          </>
-        )}
-      </svg>
-
-      {/* Centre number + status */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-        }}
-      >
+    <div style={{ width: "100%" }}>
+      {/* AQI number + status word */}
+      <div className="flex items-baseline gap-2 mb-2">
         <span
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "clamp(22px, 2vw, 30px)",
+            fontSize: "clamp(32px, 2.8vw, 44px)",
             fontWeight: 300,
             color: status?.color ?? "var(--text-dim)",
             lineHeight: 1,
@@ -147,19 +66,66 @@ function AqiGauge({ aqi }: { aqi: number | null }) {
           {aqi !== null ? aqi : "—"}
         </span>
         {status && (
-          <p
+          <span
             style={{
               fontFamily: "var(--font-body)",
-              fontSize: "clamp(11px, 0.85vw, 14px)",
+              fontSize: "clamp(14px, 1.1vw, 18px)",
               fontWeight: 400,
               color: status.color,
-              opacity: 0.85,
-              marginTop: 1,
+              opacity: 0.7,
             }}
           >
             {status.label}
-          </p>
+          </span>
         )}
+      </div>
+
+      {/* Gradient bar */}
+      <div style={{ position: "relative", width: "100%", padding: "0 3px" }}>
+        <div
+          style={{
+            width: "100%",
+            height: 7,
+            borderRadius: 4,
+            background: "linear-gradient(90deg, rgba(80, 220, 120, 0.45), rgba(180, 220, 80, 0.45), rgba(240, 200, 60, 0.45), rgba(255, 150, 60, 0.45), rgba(255, 70, 50, 0.45))",
+          }}
+        />
+        {/* Position marker */}
+        {aqi !== null && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: `${pct}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div
+              style={{
+                width: 11,
+                height: 11,
+                borderRadius: "50%",
+                backgroundColor: status?.color ?? "#fff",
+                boxShadow: `0 0 8px ${status?.color ?? "#fff"}, 0 0 16px ${status?.color ?? "#fff"}`,
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Scale labels */}
+      <div
+        className="flex justify-between"
+        style={{
+          fontSize: "clamp(7px, 0.5vw, 9px)",
+          color: "rgba(200, 196, 220, 0.3)",
+          fontFamily: "var(--font-mono)",
+          marginTop: 2,
+          padding: "0 1px",
+        }}
+      >
+        <span>0</span>
+        <span>100+</span>
       </div>
     </div>
   );
@@ -336,45 +302,44 @@ export const TidalPanel = memo(function TidalPanel({
           )}
         </div>
 
-        {/* Gauge + pollutants */}
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <AqiGauge aqi={air.aqi} />
+        {/* AQI display + bar + pollutants */}
+        <div className="flex-1 flex flex-col justify-center">
+          <AqiBar aqi={air.aqi} />
 
-          {/* Pollutant row */}
+          {/* Pollutant row — single compact line */}
           <div
-            className="flex justify-center gap-3 mt-1"
+            className="flex justify-between mt-2"
             style={{ width: "100%" }}
           >
             {([
-              { label: "PM2.5", value: air.pm25, unit: "", thresholds: [10, 25, 50, 75] },
-              { label: "PM10", value: air.pm10, unit: "", thresholds: [20, 50, 100, 200] },
-              { label: "NO\u2082", value: air.no2, unit: "", thresholds: [40, 90, 120, 230] },
-              { label: "O\u2083", value: air.o3, unit: "", thresholds: [60, 100, 140, 180] },
+              { label: "PM2.5", value: air.pm25, thresholds: [10, 25, 50, 75] },
+              { label: "PM10", value: air.pm10, thresholds: [20, 50, 100, 200] },
+              { label: "NO\u2082", value: air.no2, thresholds: [40, 90, 120, 230] },
+              { label: "O\u2083", value: air.o3, thresholds: [60, 100, 140, 180] },
             ] as const).map((p) => (
-              <div key={p.label} className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <span
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      backgroundColor: getPollutantColor(p.value, [...p.thresholds]),
-                      display: "inline-block",
-                    }}
-                  />
-                  <span
-                    className="data-label"
-                    style={{ fontSize: "clamp(7px, 0.55vw, 9px)" }}
-                  >
-                    {p.label}
-                  </span>
-                </div>
+              <div key={p.label} className="flex items-center gap-1">
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    backgroundColor: getPollutantColor(p.value, [...p.thresholds]),
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  className="data-label"
+                  style={{ fontSize: "clamp(7px, 0.55vw, 9px)" }}
+                >
+                  {p.label}
+                </span>
                 <span
                   className="font-mono"
                   style={{
                     fontSize: "clamp(10px, 0.75vw, 13px)",
                     fontWeight: 300,
-                    color: "rgba(240, 238, 248, 0.65)",
+                    color: "rgba(240, 238, 248, 0.55)",
                   }}
                 >
                   {p.value !== null ? Math.round(p.value) : "—"}
