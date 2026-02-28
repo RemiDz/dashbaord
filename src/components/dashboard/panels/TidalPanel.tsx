@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { Sparkline } from "@/components/shared/Sparkline";
 import { AnimatedValue } from "@/components/shared/AnimatedValue";
@@ -127,6 +127,246 @@ function AqiBar({ aqi }: { aqi: number | null }) {
         <span>0</span>
         <span>100+</span>
       </div>
+    </div>
+  );
+}
+
+// ── Tidal chart with H/L reference lines + NOW marker ───
+
+interface TidalChartProps {
+  hourly: { time: string; height: number }[];
+  nextHigh: { time: string; height: number } | null;
+  nextLow: { time: string; height: number } | null;
+  height?: number;
+}
+
+function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container || hourly.length < 2) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const color = "rgba(80, 180, 230, 0.9)";
+
+    function draw() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container!.getBoundingClientRect();
+      const w = rect.width;
+      const h = height;
+
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = `${w}px`;
+      canvas!.style.height = `${h}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const pad = { top: 12, bottom: 12, left: 0, right: 28 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      const heights = hourly.map((p) => p.height);
+      const min = Math.min(...heights);
+      const max = Math.max(...heights);
+      const range = max - min || 1;
+
+      function toX(i: number) {
+        return pad.left + (i / (hourly.length - 1)) * plotW;
+      }
+      function toY(val: number) {
+        return pad.top + plotH - ((val - min) / range) * plotH;
+      }
+
+      ctx!.clearRect(0, 0, w, h);
+
+      // --- H/L dashed reference lines ---
+      const highY = toY(max);
+      const lowY = toY(min);
+
+      ctx!.save();
+      ctx!.setLineDash([3, 3]);
+      ctx!.lineWidth = 0.8;
+
+      // High line
+      ctx!.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx!.beginPath();
+      ctx!.moveTo(pad.left, highY);
+      ctx!.lineTo(w - pad.right, highY);
+      ctx!.stroke();
+
+      // Low line
+      ctx!.beginPath();
+      ctx!.moveTo(pad.left, lowY);
+      ctx!.lineTo(w - pad.right, lowY);
+      ctx!.stroke();
+      ctx!.restore();
+
+      // H/L labels on right edge
+      ctx!.save();
+      ctx!.font = "9px var(--font-mono, monospace)";
+      ctx!.textAlign = "left";
+      ctx!.fillStyle = "rgba(200, 196, 220, 0.35)";
+      ctx!.fillText(`H`, w - pad.right + 4, highY + 3);
+      ctx!.fillText(`L`, w - pad.right + 4, lowY + 3);
+
+      // Height values
+      ctx!.font = "7px var(--font-mono, monospace)";
+      ctx!.fillStyle = "rgba(200, 196, 220, 0.25)";
+      ctx!.fillText(`${max.toFixed(1)}`, w - pad.right + 4, highY - 5);
+      ctx!.fillText(`${min.toFixed(1)}`, w - pad.right + 4, lowY + 12);
+      ctx!.restore();
+
+      // --- Build smooth path using cardinal spline ---
+      const points: [number, number][] = heights.map((v, i) => [toX(i), toY(v)]);
+
+      function cardinalSpline(pts: [number, number][], tension: number) {
+        const path = new Path2D();
+        if (pts.length < 2) return path;
+        path.moveTo(pts[0][0], pts[0][1]);
+        if (pts.length === 2) {
+          path.lineTo(pts[1][0], pts[1][1]);
+          return path;
+        }
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i === 0 ? 0 : i - 1];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[i + 2 >= pts.length ? pts.length - 1 : i + 2];
+          const cp1x = p1[0] + ((p2[0] - p0[0]) / 6) * tension;
+          const cp1y = p1[1] + ((p2[1] - p0[1]) / 6) * tension;
+          const cp2x = p2[0] - ((p3[0] - p1[0]) / 6) * tension;
+          const cp2y = p2[1] - ((p3[1] - p1[1]) / 6) * tension;
+          path.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+        }
+        return path;
+      }
+
+      const linePath = cardinalSpline(points, 1);
+
+      // --- Area fill ---
+      const areaPath = new Path2D();
+      areaPath.addPath(linePath);
+      areaPath.lineTo(points[points.length - 1][0], h);
+      areaPath.lineTo(points[0][0], h);
+      areaPath.closePath();
+
+      const gradient = ctx!.createLinearGradient(0, pad.top, 0, h);
+      gradient.addColorStop(0, "rgba(80, 180, 230, 0.25)");
+      gradient.addColorStop(0.4, "rgba(80, 180, 230, 0.08)");
+      gradient.addColorStop(1, "rgba(80, 180, 230, 0.0)");
+      ctx!.fillStyle = gradient;
+      ctx!.fill(areaPath);
+
+      // --- Line stroke ---
+      ctx!.strokeStyle = color;
+      ctx!.lineWidth = 2.5;
+      ctx!.lineJoin = "round";
+      ctx!.lineCap = "round";
+      ctx!.stroke(linePath);
+
+      // --- NOW indicator ---
+      const now = Date.now();
+      const times = hourly.map((p) => new Date(p.time).getTime());
+      let nowIdx = -1;
+      for (let i = 0; i < times.length - 1; i++) {
+        if (now >= times[i] && now <= times[i + 1]) {
+          nowIdx = i + (now - times[i]) / (times[i + 1] - times[i]);
+          break;
+        }
+      }
+      // If now is past all data, use last point
+      if (nowIdx < 0 && times.length > 0 && now >= times[times.length - 1]) {
+        nowIdx = times.length - 1;
+      }
+
+      if (nowIdx >= 0) {
+        const nowX = pad.left + (nowIdx / (hourly.length - 1)) * plotW;
+        // Interpolate Y
+        const iLow = Math.floor(nowIdx);
+        const iHigh = Math.min(iLow + 1, heights.length - 1);
+        const frac = nowIdx - iLow;
+        const nowVal = heights[iLow] + (heights[iHigh] - heights[iLow]) * frac;
+        const nowY = toY(nowVal);
+
+        // Vertical dashed line
+        ctx!.save();
+        ctx!.setLineDash([2, 3]);
+        ctx!.strokeStyle = "rgba(255, 255, 255, 0.12)";
+        ctx!.lineWidth = 0.8;
+        ctx!.beginPath();
+        ctx!.moveTo(nowX, pad.top);
+        ctx!.lineTo(nowX, h - pad.bottom);
+        ctx!.stroke();
+        ctx!.restore();
+
+        // Glowing dot at current position
+        ctx!.save();
+        ctx!.shadowColor = color;
+        ctx!.shadowBlur = 10;
+        ctx!.beginPath();
+        ctx!.arc(nowX, nowY, 4, 0, Math.PI * 2);
+        ctx!.fillStyle = color;
+        ctx!.fill();
+        ctx!.restore();
+
+        // Inner bright core
+        ctx!.beginPath();
+        ctx!.arc(nowX, nowY, 1.8, 0, Math.PI * 2);
+        ctx!.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx!.fill();
+      }
+
+      // --- High/Low time labels on chart peaks/troughs ---
+      if (nextHigh) {
+        const ht = new Date(nextHigh.time).getTime();
+        for (let i = 0; i < times.length; i++) {
+          if (Math.abs(times[i] - ht) < 3600000) {
+            const hx = toX(i);
+            const hy = toY(heights[i]);
+            ctx!.save();
+            ctx!.font = "7px var(--font-mono, monospace)";
+            ctx!.textAlign = "center";
+            ctx!.fillStyle = "rgba(200, 196, 220, 0.4)";
+            ctx!.fillText(formatEventTime(nextHigh.time), hx, hy - 4);
+            ctx!.restore();
+            break;
+          }
+        }
+      }
+      if (nextLow) {
+        const lt = new Date(nextLow.time).getTime();
+        for (let i = 0; i < times.length; i++) {
+          if (Math.abs(times[i] - lt) < 3600000) {
+            const lx = toX(i);
+            const ly = toY(heights[i]);
+            ctx!.save();
+            ctx!.font = "7px var(--font-mono, monospace)";
+            ctx!.textAlign = "center";
+            ctx!.fillStyle = "rgba(200, 196, 220, 0.4)";
+            ctx!.fillText(formatEventTime(nextLow.time), lx, ly + 11);
+            ctx!.restore();
+            break;
+          }
+        }
+      }
+    }
+
+    draw();
+
+    const observer = new ResizeObserver(() => draw());
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [hourly, nextHigh, nextLow, height]);
+
+  return (
+    <div ref={containerRef} className="w-full" style={{ height }}>
+      <canvas ref={canvasRef} className="block" />
     </div>
   );
 }
@@ -378,15 +618,15 @@ export const TidalPanel = memo(function TidalPanel({
         className="w-full relative z-10"
         style={{
           height: 1,
-          background: "linear-gradient(90deg, transparent, rgba(200, 196, 220, 0.08), transparent)",
-          margin: "4px 0",
+          background: "linear-gradient(90deg, transparent 5%, rgba(200, 196, 220, 0.18) 30%, rgba(200, 196, 220, 0.22) 50%, rgba(200, 196, 220, 0.18) 70%, transparent 95%)",
+          margin: "14px 0",
         }}
       />
 
       {/* ═══ BOTTOM HALF: Tidal Intelligence (compact) ═══ */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10">
-        {/* Header with badge */}
-        <div className="flex items-center justify-between">
+        {/* Header: TIDAL ▲ RISING on one line */}
+        <div className="flex items-center gap-2">
           <span className="panel-label">Tidal</span>
           {hasData && (
             <span
@@ -412,8 +652,8 @@ export const TidalPanel = memo(function TidalPanel({
           )}
         </div>
 
-        {/* Compact tide data row */}
-        <div className="flex items-baseline gap-3 mt-1">
+        {/* Current height */}
+        <div className="flex items-baseline gap-2 mt-1">
           {hasData ? (
             <>
               <AnimatedValue
@@ -448,37 +688,19 @@ export const TidalPanel = memo(function TidalPanel({
               {isLoading ? "—" : "--"}
             </span>
           )}
-
-          {/* Next high/low inline */}
-          <div className="ml-auto flex gap-3">
-            <div>
-              <p className="data-label" style={{ fontSize: "clamp(7px, 0.5vw, 8px)" }}>High</p>
-              <p className="font-mono" style={{ fontSize: "clamp(11px, 0.8vw, 13px)", color: "rgba(240, 238, 248, 0.65)" }}>
-                {nextHigh ? formatEventTime(nextHigh.time) : "—"}
-              </p>
-            </div>
-            <div>
-              <p className="data-label" style={{ fontSize: "clamp(7px, 0.5vw, 8px)" }}>Low</p>
-              <p className="font-mono" style={{ fontSize: "clamp(11px, 0.8vw, 13px)", color: "rgba(240, 238, 248, 0.65)" }}>
-                {nextLow ? formatEventTime(nextLow.time) : "—"}
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* Sparkline */}
+        {/* Tidal chart with H/L reference lines and NOW marker */}
         <div className="mt-auto pt-1">
-          {sparkData.length > 1 ? (
-            <Sparkline
-              data={sparkData}
-              color="rgba(80, 180, 230, 0.9)"
-              height={36}
-              showArea
-              pulseEndpoint
-              referenceLines={2}
+          {hourly.length > 1 ? (
+            <TidalChart
+              hourly={hourly}
+              nextHigh={nextHigh}
+              nextLow={nextLow}
+              height={60}
             />
           ) : (
-            <div style={{ height: 36 }} />
+            <div style={{ height: 60 }} />
           )}
         </div>
 
