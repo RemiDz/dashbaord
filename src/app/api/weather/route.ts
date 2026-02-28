@@ -54,6 +54,7 @@ export async function GET(request: Request) {
     const weatherUrl =
       `${OPEN_METEO_BASE}?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,surface_pressure` +
+      `&hourly=temperature_2m,weathercode` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset` +
       `&wind_speed_unit=kmh&timezone=auto&forecast_days=5`;
 
@@ -120,7 +121,27 @@ export async function GET(request: Request) {
       low: Math.round(data.daily.temperature_2m_min[i]),
     }));
 
-    return NextResponse.json({ current, forecast, location });
+    // Parse hourly data — current hour through next 12 hours
+    const nowHour = new Date();
+    const hourly: { hour: string; temp: number }[] = [];
+    if (data.hourly?.time && data.hourly?.temperature_2m) {
+      const times: string[] = data.hourly.time;
+      const temps: number[] = data.hourly.temperature_2m;
+      // Find the index of the current hour
+      const nowIso = nowHour.toISOString().slice(0, 13); // "YYYY-MM-DDTHH"
+      let startIdx = times.findIndex((t: string) => t.startsWith(nowIso));
+      if (startIdx === -1) startIdx = 0;
+      const endIdx = Math.min(startIdx + 13, times.length); // 13 points = current + 12h
+      for (let i = startIdx; i < endIdx; i++) {
+        const h = new Date(times[i]).getHours();
+        hourly.push({
+          hour: `${h < 10 ? "0" : ""}${h}`,
+          temp: Math.round(temps[i] * 10) / 10,
+        });
+      }
+    }
+
+    return NextResponse.json({ current, forecast, hourly, location });
   } catch (error) {
     console.error("Weather fetch error:", error);
     return NextResponse.json(

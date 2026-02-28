@@ -21,9 +21,15 @@ export interface ForecastDay {
   low: number;
 }
 
+export interface HourlyPoint {
+  hour: string;
+  temp: number;
+}
+
 interface WeatherResponse {
   current: CurrentWeather | null;
   forecast: ForecastDay[];
+  hourly: HourlyPoint[];
   location?: string;
   error?: string;
 }
@@ -48,6 +54,7 @@ export function useWeather() {
   return {
     current: data?.current ?? null,
     forecast: data?.forecast ?? [],
+    hourly: data?.hourly ?? [],
     location: data?.location ?? "",
     isLoading,
     error: error || data?.error,

@@ -1,9 +1,9 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { AnimatedValue } from "@/components/shared/AnimatedValue";
-import { useWeather } from "@/hooks/useWeather";
+import { useWeather, type HourlyPoint } from "@/hooks/useWeather";
 
 interface WeatherPanelProps {
   style?: React.CSSProperties;
@@ -23,8 +23,171 @@ function WeatherIcon({ icon, size = 48 }: { icon: string; size?: number }) {
   );
 }
 
+/** Canvas-based hourly temperature chart */
+function HourlyChart({ data }: { data: HourlyPoint[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container || data.length < 2) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    function draw() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container!.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = `${w}px`;
+      canvas!.style.height = `${h}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx!.clearRect(0, 0, w, h);
+
+      const pad = { top: 14, bottom: 18, left: 4, right: 4 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      const temps = data.map((d) => d.temp);
+      const min = Math.min(...temps) - 0.5;
+      const max = Math.max(...temps) + 0.5;
+      const range = max - min || 1;
+
+      function toX(i: number) {
+        return pad.left + (i / (data.length - 1)) * plotW;
+      }
+      function toY(val: number) {
+        return pad.top + plotH - ((val - min) / range) * plotH;
+      }
+
+      // Reference lines
+      ctx!.save();
+      ctx!.strokeStyle = "rgba(255, 255, 255, 0.04)";
+      ctx!.lineWidth = 0.5;
+      for (let i = 0; i <= 3; i++) {
+        const val = min + (range * i) / 3;
+        const y = toY(val);
+        ctx!.beginPath();
+        ctx!.moveTo(pad.left, y);
+        ctx!.lineTo(w - pad.right, y);
+        ctx!.stroke();
+      }
+      ctx!.restore();
+
+      // Build smooth cardinal spline path
+      const points: [number, number][] = data.map((_, i) => [toX(i), toY(temps[i])]);
+
+      const path = new Path2D();
+      path.moveTo(points[0][0], points[0][1]);
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i === 0 ? 0 : i - 1];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2 >= points.length ? points.length - 1 : i + 2];
+        const cp1x = p1[0] + ((p2[0] - p0[0]) / 6);
+        const cp1y = p1[1] + ((p2[1] - p0[1]) / 6);
+        const cp2x = p2[0] - ((p3[0] - p1[0]) / 6);
+        const cp2y = p2[1] - ((p3[1] - p1[1]) / 6);
+        path.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+      }
+
+      // Area fill
+      const areaPath = new Path2D();
+      areaPath.addPath(path);
+      areaPath.lineTo(points[points.length - 1][0], h - pad.bottom);
+      areaPath.lineTo(points[0][0], h - pad.bottom);
+      areaPath.closePath();
+
+      const gradient = ctx!.createLinearGradient(0, pad.top, 0, h);
+      gradient.addColorStop(0, "rgba(232, 201, 122, 0.3)");
+      gradient.addColorStop(0.4, "rgba(232, 201, 122, 0.08)");
+      gradient.addColorStop(1, "rgba(232, 201, 122, 0.0)");
+      ctx!.fillStyle = gradient;
+      ctx!.fill(areaPath);
+
+      // Line stroke
+      ctx!.save();
+      ctx!.strokeStyle = "rgba(232, 201, 122, 0.7)";
+      ctx!.lineWidth = 2;
+      ctx!.lineJoin = "round";
+      ctx!.lineCap = "round";
+      ctx!.stroke(path);
+      ctx!.restore();
+
+      // Soft glow behind line
+      ctx!.save();
+      ctx!.strokeStyle = "rgba(232, 201, 122, 0.2)";
+      ctx!.lineWidth = 4;
+      ctx!.filter = "blur(3px)";
+      ctx!.stroke(path);
+      ctx!.restore();
+
+      // Current hour glowing dot (first point)
+      const cp = points[0];
+      ctx!.save();
+      ctx!.shadowColor = "rgba(232, 201, 122, 0.9)";
+      ctx!.shadowBlur = 12;
+      ctx!.beginPath();
+      ctx!.arc(cp[0], cp[1], 4, 0, Math.PI * 2);
+      ctx!.fillStyle = "rgba(232, 201, 122, 0.9)";
+      ctx!.fill();
+      ctx!.restore();
+      ctx!.beginPath();
+      ctx!.arc(cp[0], cp[1], 1.5, 0, Math.PI * 2);
+      ctx!.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx!.fill();
+
+      // Hour labels along bottom — every 2-3 hours
+      ctx!.save();
+      ctx!.font = "9px var(--font-jetbrains), 'JetBrains Mono', monospace";
+      ctx!.textAlign = "center";
+      ctx!.fillStyle = "rgba(200, 196, 220, 0.35)";
+      const labelEvery = data.length > 10 ? 3 : 2;
+      for (let i = 0; i < data.length; i += labelEvery) {
+        ctx!.fillText(data[i].hour, toX(i), h - 3);
+      }
+      // Always label the last point if not already labelled
+      if ((data.length - 1) % labelEvery !== 0) {
+        ctx!.fillText(data[data.length - 1].hour, toX(data.length - 1), h - 3);
+      }
+      ctx!.restore();
+
+      // Temperature labels at min/max
+      ctx!.save();
+      ctx!.font = "9px var(--font-jetbrains), 'JetBrains Mono', monospace";
+      ctx!.fillStyle = "rgba(232, 201, 122, 0.5)";
+      const maxIdx = temps.indexOf(Math.max(...temps));
+      const minIdx = temps.indexOf(Math.min(...temps));
+      ctx!.textAlign = "center";
+      ctx!.fillText(`${Math.round(temps[maxIdx])}°`, toX(maxIdx), toY(temps[maxIdx]) - 4);
+      if (maxIdx !== minIdx) {
+        ctx!.fillStyle = "rgba(200, 196, 220, 0.35)";
+        ctx!.fillText(`${Math.round(temps[minIdx])}°`, toX(minIdx), toY(temps[minIdx]) + 12);
+      }
+      ctx!.restore();
+    }
+
+    draw();
+
+    const observer = new ResizeObserver(draw);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [data]);
+
+  return (
+    <div ref={containerRef} className="w-full flex-1 min-h-0">
+      <canvas ref={canvasRef} className="block w-full h-full" />
+    </div>
+  );
+}
+
 export const WeatherPanel = memo(function WeatherPanel({ style, animationDelay }: WeatherPanelProps) {
-  const { current, forecast, location, isLoading, error } = useWeather();
+  const { current, forecast, hourly, location, isLoading, error } = useWeather();
   const hasData = current !== null;
 
   return (
@@ -186,8 +349,13 @@ export const WeatherPanel = memo(function WeatherPanel({ style, animationDelay }
         </div>
       )}
 
+      {/* ── Hourly Temperature Chart ── */}
+      {hourly.length > 1 && (
+        <HourlyChart data={hourly} />
+      )}
+
       {/* ── 5-Day Forecast ── */}
-      <div className="grid grid-cols-5 gap-1 mt-auto pt-3">
+      <div className="grid grid-cols-5 gap-1 mt-auto pt-2">
         {forecast.length > 0
           ? forecast.map((day, i) => {
               const isToday = i === 0;
