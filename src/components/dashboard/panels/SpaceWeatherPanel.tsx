@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { Sparkline } from "@/components/shared/Sparkline";
 import { useSpaceWeather } from "@/hooks/useSpaceWeather";
@@ -64,15 +64,20 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
       )
     : "green";
 
-  const tickerText = hasAlerts
-    ? sw.alerts.map((a) => a.type).join("  ●  ")
-    : "No active space weather alerts";
-  const tickerColor = hasAlerts
-    ? SEVERITY_COLORS[highestSeverity]
-    : "rgba(100, 220, 170, 0.7)";
-  const tickerBg = hasAlerts
-    ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.06)")
-    : "rgba(100, 220, 170, 0.03)";
+  // Rotate through alerts every 10s
+  const [alertIdx, setAlertIdx] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  useEffect(() => {
+    if (sw.alerts.length <= 1) return;
+    const id = setInterval(() => {
+      setFadeIn(false);
+      setTimeout(() => {
+        setAlertIdx((i) => (i + 1) % sw.alerts.length);
+        setFadeIn(true);
+      }, 500);
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [sw.alerts.length]);
 
   return (
     <Panel
@@ -205,38 +210,100 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
         </div>
       )}
 
-      {/* ── Alert ticker at bottom ── */}
+      {/* ── Alert container ── */}
       <div
+        className="mt-auto"
         style={{
-          height: 30,
-          marginTop: "auto",
-          background: tickerBg,
-          borderTop: `1px solid ${tickerColor.replace(/[\d.]+\)$/, "0.12)")}`,
-          borderRadius: "0 0 14px 14px",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          position: "relative",
-          marginLeft: -16,
-          marginRight: -16,
-          marginBottom: -16,
-          paddingLeft: 0,
-          paddingRight: 0,
+          background: hasAlerts
+            ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.04)")
+            : "rgba(100, 220, 170, 0.02)",
+          borderTop: `1px solid ${hasAlerts ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.1)") : "rgba(100, 220, 170, 0.06)"}`,
+          borderRadius: 8,
+          padding: "6px 10px",
         }}
       >
-        <div
-          style={{
-            whiteSpace: "nowrap",
-            animation: "tickerScroll 25s linear infinite",
-            fontFamily: "var(--font-body)",
-            fontSize: "clamp(10px, 0.75vw, 12px)",
-            fontWeight: 400,
-            color: tickerColor,
-            paddingLeft: "100%",
-          }}
-        >
-          {tickerText}
+        {/* Header: ALERTS + count */}
+        <div className="flex items-center justify-between mb-1">
+          <span className="data-label" style={{ fontSize: "0.5rem" }}>Alerts</span>
+          <span
+            className="font-mono"
+            style={{
+              fontSize: "clamp(9px, 0.6vw, 11px)",
+              color: hasAlerts ? SEVERITY_COLORS[highestSeverity] : "rgba(100, 220, 170, 0.7)",
+              backgroundColor: hasAlerts ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.1)") : "rgba(100, 220, 170, 0.06)",
+              padding: "1px 6px",
+              borderRadius: 8,
+            }}
+          >
+            {sw.alerts.length}
+          </span>
         </div>
+
+        {/* Alert display */}
+        {hasAlerts ? (
+          <div
+            style={{
+              transition: "opacity 0.5s ease",
+              opacity: fadeIn ? 1 : 0,
+              minHeight: 28,
+            }}
+          >
+            <p
+              className="font-body"
+              style={{
+                fontSize: "clamp(10px, 0.75vw, 12px)",
+                fontWeight: 400,
+                color: SEVERITY_COLORS[sw.alerts[alertIdx % sw.alerts.length]?.severity ?? "green"],
+                lineHeight: 1.4,
+              }}
+            >
+              {sw.alerts[alertIdx % sw.alerts.length]?.type}
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2" style={{ minHeight: 28 }}>
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "rgba(100, 220, 170, 0.7)",
+                boxShadow: "0 0 4px rgba(100, 220, 170, 0.3)",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="font-body"
+              style={{
+                color: "rgba(100, 220, 170, 0.6)",
+                fontSize: "clamp(10px, 0.75vw, 12px)",
+                fontStyle: "italic",
+              }}
+            >
+              No active alerts
+            </span>
+          </div>
+        )}
+
+        {/* Carousel dots */}
+        {sw.alerts.length > 1 && (
+          <div className="flex justify-center gap-1 mt-1">
+            {sw.alerts.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: "50%",
+                  background: i === alertIdx % sw.alerts.length
+                    ? SEVERITY_COLORS[highestSeverity]
+                    : "rgba(200, 196, 220, 0.15)",
+                  transition: "background 0.5s ease",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Panel>
   );
