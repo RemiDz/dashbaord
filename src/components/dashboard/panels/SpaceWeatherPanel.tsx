@@ -47,6 +47,85 @@ function getFlareColor(flare: string | null): string {
   return "rgba(100, 220, 170, 0.9)";
 }
 
+// Common NOAA alert code summaries
+const ALERT_SUMMARIES: Record<string, string> = {
+  WARK: "Geomagnetic activity may affect sensitive electronics and auroral visibility at high latitudes.",
+  WATA: "Solar wind disturbance expected. May cause power grid irregularities and extended aurora visibility.",
+  WATK: "Geomagnetic storm conditions expected. Aurora may be visible at lower latitudes than usual.",
+  ALTEF: "Elevated radiation levels may affect satellite operations and high-altitude communications.",
+  ALTPX: "Elevated proton levels detected. May impact HF radio propagation at polar latitudes.",
+  ALTTP: "Geomagnetic storm in progress. Possible power grid fluctuations and degraded GPS accuracy.",
+  WARSUD: "Sudden impulse detected in Earth's magnetic field from a solar wind shock.",
+  SUM: "Solar activity summary — monitoring ongoing conditions.",
+  SUMSUD: "Geomagnetic sudden impulse observed from coronal mass ejection arrival.",
+};
+
+function getAlertSummary(message: string): string {
+  // Try to match alert code from message
+  const codeMatch = message.match(/Message Code:\s*(\w+)/i);
+  if (codeMatch) {
+    const code = codeMatch[1].toUpperCase();
+    for (const [prefix, summary] of Object.entries(ALERT_SUMMARIES)) {
+      if (code.startsWith(prefix)) return summary;
+    }
+  }
+
+  // Fallback: extract first meaningful sentence from message body
+  const lines = message.split("\n").filter((l) => l.trim().length > 0);
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith("Space Weather") || t.startsWith("Serial") || t.startsWith("Issue") || t.length < 15) continue;
+    if (/^(Watch|Warning|Alert|Summary|Extended|Cancel)/i.test(t)) continue;
+    // Return first substantive line, truncated
+    return t.length > 150 ? t.slice(0, 147) + "…" : t;
+  }
+
+  return "";
+}
+
+function AlertDisplay({ alert, fadeIn }: { alert: { message: string; severity: string; type: string }; fadeIn: boolean }) {
+  const summary = getAlertSummary(alert.message);
+  return (
+    <div
+      className="flex-1 flex flex-col justify-center"
+      style={{
+        transition: "opacity 0.5s ease",
+        opacity: fadeIn ? 1 : 0,
+      }}
+    >
+      <p
+        className="font-body"
+        style={{
+          fontSize: "clamp(14px, 1.2vw, 18px)",
+          fontWeight: 400,
+          color: SEVERITY_COLORS[alert.severity] ?? "var(--text-primary)",
+          lineHeight: 1.4,
+        }}
+      >
+        {alert.type}
+      </p>
+      {summary && (
+        <p
+          className="font-body"
+          style={{
+            fontSize: "clamp(11px, 0.9vw, 14px)",
+            fontWeight: 300,
+            color: "rgba(220, 230, 255, 0.5)",
+            lineHeight: 1.4,
+            marginTop: 4,
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical" as const,
+            overflow: "hidden",
+          }}
+        >
+          {summary}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
   style,
   animationDelay,
@@ -241,25 +320,10 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
 
         {/* Alert display */}
         {hasAlerts ? (
-          <div
-            className="flex-1 flex items-center"
-            style={{
-              transition: "opacity 0.5s ease",
-              opacity: fadeIn ? 1 : 0,
-            }}
-          >
-            <p
-              className="font-body"
-              style={{
-                fontSize: "clamp(14px, 1.2vw, 18px)",
-                fontWeight: 400,
-                color: SEVERITY_COLORS[sw.alerts[alertIdx % sw.alerts.length]?.severity ?? "green"],
-                lineHeight: 1.4,
-              }}
-            >
-              {sw.alerts[alertIdx % sw.alerts.length]?.type}
-            </p>
-          </div>
+          <AlertDisplay
+            alert={sw.alerts[alertIdx % sw.alerts.length]}
+            fadeIn={fadeIn}
+          />
         ) : (
           <div className="flex-1 flex items-center gap-2">
             <div
