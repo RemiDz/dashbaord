@@ -5,7 +5,6 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export interface BeachCamData {
   name: string;
   country: string;
-  snapshotUrl: string;
   localTime: string;
   temp: number | null;
   index: number;
@@ -30,7 +29,6 @@ export function useBeachCam() {
   return {
     name: data?.name ?? null,
     country: data?.country ?? "",
-    snapshotUrl: data?.snapshotUrl ?? null,
     localTime: data?.localTime ?? "",
     temp: data?.temp ?? null,
     index: data?.index ?? 0,
