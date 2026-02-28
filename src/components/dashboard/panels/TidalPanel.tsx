@@ -143,6 +143,7 @@ interface TidalChartProps {
 function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -153,6 +154,13 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
     if (!ctx) return;
 
     const color = "rgba(80, 180, 230, 0.9)";
+
+    // Pre-compute static data
+    const heights = hourly.map((p) => p.height);
+    const min = Math.min(...heights);
+    const max = Math.max(...heights);
+    const range = max - min || 1;
+    const times = hourly.map((p) => new Date(p.time).getTime());
 
     function draw() {
       const dpr = window.devicePixelRatio || 1;
@@ -166,14 +174,9 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const pad = { top: 12, bottom: 12, left: 0, right: 28 };
+      const pad = { top: 14, bottom: 6, left: 0, right: 28 };
       const plotW = w - pad.left - pad.right;
       const plotH = h - pad.top - pad.bottom;
-
-      const heights = hourly.map((p) => p.height);
-      const min = Math.min(...heights);
-      const max = Math.max(...heights);
-      const range = max - min || 1;
 
       function toX(i: number) {
         return pad.left + (i / (hourly.length - 1)) * plotW;
@@ -184,6 +187,53 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
 
       ctx!.clearRect(0, 0, w, h);
 
+      // --- Find NOW position ---
+      const now = Date.now();
+      let nowIdx = -1;
+      for (let i = 0; i < times.length - 1; i++) {
+        if (now >= times[i] && now <= times[i + 1]) {
+          nowIdx = i + (now - times[i]) / (times[i + 1] - times[i]);
+          break;
+        }
+      }
+      if (nowIdx < 0 && times.length > 0 && now >= times[times.length - 1]) {
+        nowIdx = times.length - 1;
+      }
+
+      let nowY = h;
+      if (nowIdx >= 0) {
+        const iLow = Math.floor(nowIdx);
+        const iHigh = Math.min(iLow + 1, heights.length - 1);
+        const frac = nowIdx - iLow;
+        const nowVal = heights[iLow] + (heights[iHigh] - heights[iLow]) * frac;
+        nowY = toY(nowVal);
+      }
+
+      // --- Water fill from current tide level to bottom ---
+      const t = Date.now() / 1000;
+      const waterGrad = ctx!.createLinearGradient(0, nowY, 0, h);
+      waterGrad.addColorStop(0, "rgba(40, 120, 200, 0.18)");
+      waterGrad.addColorStop(0.3, "rgba(30, 100, 180, 0.12)");
+      waterGrad.addColorStop(1, "rgba(20, 70, 150, 0.06)");
+      ctx!.fillStyle = waterGrad;
+      ctx!.fillRect(pad.left, nowY, plotW, h - nowY);
+
+      // Animated wave ripples at water surface
+      ctx!.save();
+      ctx!.beginPath();
+      ctx!.moveTo(pad.left, nowY);
+      for (let x = pad.left; x <= pad.left + plotW; x += 2) {
+        const wave1 = Math.sin((x * 0.04) + t * 1.2) * 2;
+        const wave2 = Math.sin((x * 0.07) + t * 0.8 + 1.5) * 1.2;
+        ctx!.lineTo(x, nowY + wave1 + wave2);
+      }
+      ctx!.lineTo(pad.left + plotW, h);
+      ctx!.lineTo(pad.left, h);
+      ctx!.closePath();
+      ctx!.fillStyle = "rgba(80, 180, 230, 0.08)";
+      ctx!.fill();
+      ctx!.restore();
+
       // --- H/L dashed reference lines ---
       const highY = toY(max);
       const lowY = toY(min);
@@ -192,14 +242,12 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       ctx!.setLineDash([3, 3]);
       ctx!.lineWidth = 0.8;
 
-      // High line
       ctx!.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx!.beginPath();
       ctx!.moveTo(pad.left, highY);
       ctx!.lineTo(w - pad.right, highY);
       ctx!.stroke();
 
-      // Low line
       ctx!.beginPath();
       ctx!.moveTo(pad.left, lowY);
       ctx!.lineTo(w - pad.right, lowY);
@@ -214,7 +262,6 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       ctx!.fillText(`H`, w - pad.right + 5, highY + 4);
       ctx!.fillText(`L`, w - pad.right + 5, lowY + 4);
 
-      // Height values
       ctx!.font = "8px var(--font-mono, monospace)";
       ctx!.fillStyle = "rgba(200, 196, 220, 0.3)";
       ctx!.fillText(`${max.toFixed(1)}`, w - pad.right + 5, highY - 5);
@@ -248,7 +295,7 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
 
       const linePath = cardinalSpline(points, 1);
 
-      // --- Area fill ---
+      // --- Area fill under curve ---
       const areaPath = new Path2D();
       areaPath.addPath(linePath);
       areaPath.lineTo(points[points.length - 1][0], h);
@@ -270,28 +317,8 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       ctx!.stroke(linePath);
 
       // --- NOW indicator ---
-      const now = Date.now();
-      const times = hourly.map((p) => new Date(p.time).getTime());
-      let nowIdx = -1;
-      for (let i = 0; i < times.length - 1; i++) {
-        if (now >= times[i] && now <= times[i + 1]) {
-          nowIdx = i + (now - times[i]) / (times[i + 1] - times[i]);
-          break;
-        }
-      }
-      // If now is past all data, use last point
-      if (nowIdx < 0 && times.length > 0 && now >= times[times.length - 1]) {
-        nowIdx = times.length - 1;
-      }
-
       if (nowIdx >= 0) {
         const nowX = pad.left + (nowIdx / (hourly.length - 1)) * plotW;
-        // Interpolate Y
-        const iLow = Math.floor(nowIdx);
-        const iHigh = Math.min(iLow + 1, heights.length - 1);
-        const frac = nowIdx - iLow;
-        const nowVal = heights[iLow] + (heights[iHigh] - heights[iLow]) * frac;
-        const nowY = toY(nowVal);
 
         // Vertical dashed line
         ctx!.save();
@@ -356,135 +383,25 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       }
     }
 
-    draw();
+    // Animate the water ripples
+    function loop() {
+      draw();
+      animRef.current = requestAnimationFrame(loop);
+    }
+    loop();
 
     const observer = new ResizeObserver(() => draw());
     observer.observe(container);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (animRef.current !== null) cancelAnimationFrame(animRef.current);
+    };
   }, [hourly, nextHigh, nextLow, height]);
 
   return (
     <div ref={containerRef} className="w-full" style={{ height }}>
       <canvas ref={canvasRef} className="block" />
-    </div>
-  );
-}
-
-// ── Wave animation (shorter version) ────────────────────
-
-function wavePath(
-  width: number,
-  amplitude: number,
-  frequency: number,
-  phaseOffset: number,
-): string {
-  const points: string[] = [];
-  const totalWidth = width * 2;
-  const steps = 120;
-
-  for (let i = 0; i <= steps; i++) {
-    const x = (i / steps) * totalWidth;
-    const y =
-      amplitude * Math.sin((i / steps) * Math.PI * 2 * frequency + phaseOffset);
-    points.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
-  }
-
-  points.push(`L${totalWidth},${amplitude + 20}`);
-  points.push(`L0,${amplitude + 20}`);
-  points.push("Z");
-
-  return points.join(" ");
-}
-
-function WaterAnimation({
-  rising,
-  waterLevel,
-}: {
-  rising: boolean;
-  waterLevel: number;
-}) {
-  const width = 600;
-  const viewHeight = 50;
-  // Map waterLevel (0–1) to a visual offset across most of the viewHeight
-  const maxDrop = viewHeight - 12; // leave some room at the very bottom
-  const levelOffset = (1 - waterLevel) * maxDrop;
-
-  const layers = [
-    { amplitude: 4, frequency: 2, phase: 0, opacity: 0.12, color: "rgba(80, 180, 230, 1)", duration: 8, yOffset: levelOffset + 8 },
-    { amplitude: 3, frequency: 2.5, phase: 1.2, opacity: 0.18, color: "rgba(60, 150, 210, 1)", duration: 6, yOffset: levelOffset + 4 },
-    { amplitude: 2, frequency: 3, phase: 2.4, opacity: 0.25, color: "rgba(40, 120, 200, 1)", duration: 4.5, yOffset: levelOffset },
-  ];
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: viewHeight,
-        overflow: "hidden",
-        borderRadius: "0 0 16px 16px",
-        pointerEvents: "none",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: Math.max(8, viewHeight - levelOffset - 6),
-          background: "linear-gradient(180deg, rgba(20, 60, 120, 0.08) 0%, rgba(10, 40, 100, 0.15) 100%)",
-          transition: "height 3s ease",
-        }}
-      />
-      {layers.map((layer, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: width * 2,
-            height: viewHeight,
-            animation: `waveSlide${i + 1} ${layer.duration}s linear infinite`,
-            willChange: "transform",
-          }}
-        >
-          <svg
-            width={width * 2}
-            height={viewHeight}
-            viewBox={`0 -${layer.amplitude + 2} ${width * 2} ${viewHeight}`}
-            preserveAspectRatio="none"
-            style={{ display: "block" }}
-          >
-            <path
-              d={wavePath(width, layer.amplitude, layer.frequency, layer.phase)}
-              fill={layer.color}
-              fillOpacity={layer.opacity}
-              style={{
-                transform: `translateY(${layer.yOffset}px)`,
-                transition: "transform 3s ease",
-              }}
-            />
-          </svg>
-        </div>
-      ))}
-      {rising && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: "100%",
-            background: "linear-gradient(180deg, rgba(80, 180, 230, 0.04) 0%, rgba(80, 180, 230, 0.08) 100%)",
-            pointerEvents: "none",
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -508,16 +425,7 @@ export const TidalPanel = memo(function TidalPanel({
     error,
   } = useTidalData();
 
-  const sparkData = hourly.map((p) => p.height);
   const hasData = currentHeight !== null;
-
-  let waterLevel = 0.5;
-  if (hasData && sparkData.length > 1) {
-    const min = Math.min(...sparkData);
-    const max = Math.max(...sparkData);
-    const range = max - min;
-    waterLevel = range > 0 ? (currentHeight - min) / range : 0.5;
-  }
 
   return (
     <Panel
@@ -715,9 +623,6 @@ export const TidalPanel = memo(function TidalPanel({
           {tidalLocation}
         </p>
       </div>
-
-      {/* Water animation */}
-      <WaterAnimation rising={rising} waterLevel={waterLevel} />
     </Panel>
   );
 });
