@@ -208,17 +208,17 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
 
       // H/L labels on right edge
       ctx!.save();
-      ctx!.font = "9px var(--font-mono, monospace)";
+      ctx!.font = "10px var(--font-mono, monospace)";
       ctx!.textAlign = "left";
-      ctx!.fillStyle = "rgba(200, 196, 220, 0.35)";
-      ctx!.fillText(`H`, w - pad.right + 4, highY + 3);
-      ctx!.fillText(`L`, w - pad.right + 4, lowY + 3);
+      ctx!.fillStyle = "rgba(200, 196, 220, 0.4)";
+      ctx!.fillText(`H`, w - pad.right + 5, highY + 4);
+      ctx!.fillText(`L`, w - pad.right + 5, lowY + 4);
 
       // Height values
-      ctx!.font = "7px var(--font-mono, monospace)";
-      ctx!.fillStyle = "rgba(200, 196, 220, 0.25)";
-      ctx!.fillText(`${max.toFixed(1)}`, w - pad.right + 4, highY - 5);
-      ctx!.fillText(`${min.toFixed(1)}`, w - pad.right + 4, lowY + 12);
+      ctx!.font = "8px var(--font-mono, monospace)";
+      ctx!.fillStyle = "rgba(200, 196, 220, 0.3)";
+      ctx!.fillText(`${max.toFixed(1)}`, w - pad.right + 5, highY - 5);
+      ctx!.fillText(`${min.toFixed(1)}`, w - pad.right + 5, lowY + 14);
       ctx!.restore();
 
       // --- Build smooth path using cardinal spline ---
@@ -307,16 +307,16 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
         // Glowing dot at current position
         ctx!.save();
         ctx!.shadowColor = color;
-        ctx!.shadowBlur = 10;
+        ctx!.shadowBlur = 14;
         ctx!.beginPath();
-        ctx!.arc(nowX, nowY, 4, 0, Math.PI * 2);
+        ctx!.arc(nowX, nowY, 5, 0, Math.PI * 2);
         ctx!.fillStyle = color;
         ctx!.fill();
         ctx!.restore();
 
         // Inner bright core
         ctx!.beginPath();
-        ctx!.arc(nowX, nowY, 1.8, 0, Math.PI * 2);
+        ctx!.arc(nowX, nowY, 2.2, 0, Math.PI * 2);
         ctx!.fillStyle = "rgba(255, 255, 255, 0.9)";
         ctx!.fill();
       }
@@ -329,10 +329,10 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
             const hx = toX(i);
             const hy = toY(heights[i]);
             ctx!.save();
-            ctx!.font = "7px var(--font-mono, monospace)";
+            ctx!.font = "9px var(--font-mono, monospace)";
             ctx!.textAlign = "center";
-            ctx!.fillStyle = "rgba(200, 196, 220, 0.4)";
-            ctx!.fillText(formatEventTime(nextHigh.time), hx, hy - 4);
+            ctx!.fillStyle = "rgba(200, 196, 220, 0.45)";
+            ctx!.fillText(formatEventTime(nextHigh.time), hx, hy - 6);
             ctx!.restore();
             break;
           }
@@ -345,10 +345,10 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
             const lx = toX(i);
             const ly = toY(heights[i]);
             ctx!.save();
-            ctx!.font = "7px var(--font-mono, monospace)";
+            ctx!.font = "9px var(--font-mono, monospace)";
             ctx!.textAlign = "center";
-            ctx!.fillStyle = "rgba(200, 196, 220, 0.4)";
-            ctx!.fillText(formatEventTime(nextLow.time), lx, ly + 11);
+            ctx!.fillStyle = "rgba(200, 196, 220, 0.45)";
+            ctx!.fillText(formatEventTime(nextLow.time), lx, ly + 13);
             ctx!.restore();
             break;
           }
@@ -405,8 +405,10 @@ function WaterAnimation({
   waterLevel: number;
 }) {
   const width = 600;
-  const viewHeight = 50; // shorter than before
-  const levelOffset = (1 - waterLevel) * 20;
+  const viewHeight = 50;
+  // Map waterLevel (0–1) to a visual offset across most of the viewHeight
+  const maxDrop = viewHeight - 12; // leave some room at the very bottom
+  const levelOffset = (1 - waterLevel) * maxDrop;
 
   const layers = [
     { amplitude: 4, frequency: 2, phase: 0, opacity: 0.12, color: "rgba(80, 180, 230, 1)", duration: 8, yOffset: levelOffset + 8 },
@@ -691,16 +693,16 @@ export const TidalPanel = memo(function TidalPanel({
         </div>
 
         {/* Tidal chart with H/L reference lines and NOW marker */}
-        <div className="mt-auto pt-1">
+        <div className="flex-1 min-h-0 pt-1">
           {hourly.length > 1 ? (
             <TidalChart
               hourly={hourly}
               nextHigh={nextHigh}
               nextLow={nextLow}
-              height={60}
+              height={90}
             />
           ) : (
-            <div style={{ height: 60 }} />
+            <div style={{ height: 90 }} />
           )}
         </div>
 
