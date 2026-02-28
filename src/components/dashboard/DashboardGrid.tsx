@@ -7,40 +7,45 @@ import { KpSchumannPanel } from "@/components/dashboard/panels/KpSchumannPanel";
 import { SpaceWeatherPanel } from "@/components/dashboard/panels/SpaceWeatherPanel";
 import { TidalPanel } from "@/components/dashboard/panels/TidalPanel";
 import { GuidancePanel } from "@/components/dashboard/panels/GuidancePanel";
+import { CalendarPanel } from "@/components/dashboard/panels/CalendarPanel";
 
 export function DashboardGrid() {
   return (
     <div className="dashboard-grid grid h-full card-stagger">
-      {/* Row 1: Clock · Weather · Lunar */}
+      {/* Row 1: Clock · Weather · Lunar · Calendar */}
       <ClockPanel
-        style={{ gridColumn: "1 / 5", gridRow: "1" }}
+        style={{ gridColumn: "1 / 4", gridRow: "1" }}
         animationDelay="0s"
       />
       <WeatherPanel
-        style={{ gridColumn: "5 / 9", gridRow: "1" }}
+        style={{ gridColumn: "4 / 7", gridRow: "1" }}
         animationDelay="0.15s"
       />
       <LunarPanel
-        style={{ gridColumn: "9 / 13", gridRow: "1" }}
+        style={{ gridColumn: "7 / 10", gridRow: "1" }}
         animationDelay="0.3s"
+      />
+      <CalendarPanel
+        style={{ gridColumn: "10 / 13", gridRow: "1" }}
+        animationDelay="0.45s"
       />
 
       {/* Row 2: KP+Schumann · Space Weather · Tidal · Insight */}
       <KpSchumannPanel
         style={{ gridColumn: "1 / 4", gridRow: "2" }}
-        animationDelay="0.45s"
+        animationDelay="0.6s"
       />
       <SpaceWeatherPanel
         style={{ gridColumn: "4 / 7", gridRow: "2" }}
-        animationDelay="0.6s"
+        animationDelay="0.75s"
       />
       <TidalPanel
         style={{ gridColumn: "7 / 10", gridRow: "2" }}
-        animationDelay="0.75s"
+        animationDelay="0.9s"
       />
       <GuidancePanel
         style={{ gridColumn: "10 / 13", gridRow: "2" }}
-        animationDelay="0.9s"
+        animationDelay="1.05s"
       />
     </div>
   );

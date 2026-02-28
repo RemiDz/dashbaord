@@ -55,7 +55,7 @@ const ZODIAC = [
 
 // ── Julian Date ────────────────────────────────────────────
 
-function toJulianDate(date: Date): number {
+export function toJulianDate(date: Date): number {
   const y = date.getUTCFullYear();
   const m = date.getUTCMonth() + 1;
   const d =
@@ -110,7 +110,7 @@ function fromJulianDate(jd: number): Date {
 /**
  * Returns the moon's phase as a fraction 0–1 (0 = new, 0.5 = full).
  */
-function getMoonPhase(jd: number): number {
+export function getMoonPhase(jd: number): number {
   const daysSinceNew = jd - KNOWN_NEW_MOON;
   const cycles = daysSinceNew / SYNODIC_MONTH;
   return cycles - Math.floor(cycles);
@@ -124,7 +124,7 @@ function getIllumination(phase: number): number {
   return (1 - Math.cos(phase * 2 * Math.PI)) / 2;
 }
 
-function getPhaseName(phase: number): string {
+export function getPhaseName(phase: number): string {
   if (phase < 0.025 || phase >= 0.975) return "New Moon";
   if (phase < 0.225) return "Waxing Crescent";
   if (phase < 0.275) return "First Quarter";
