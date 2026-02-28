@@ -36,12 +36,12 @@ function getAqiStatus(aqi: number): { label: string; color: string } {
 }
 
 function getPollutantColor(value: number | null, thresholds: number[]): string {
-  if (value === null) return "rgba(200, 196, 220, 0.3)";
-  if (value <= thresholds[0]) return "rgba(80, 220, 120, 0.8)";
-  if (value <= thresholds[1]) return "rgba(180, 220, 80, 0.8)";
-  if (value <= thresholds[2]) return "rgba(240, 200, 60, 0.8)";
-  if (value <= thresholds[3]) return "rgba(255, 150, 60, 0.8)";
-  return "rgba(255, 70, 50, 0.8)";
+  if (value === null) return "rgba(200, 196, 220, 0.2)";
+  if (value <= thresholds[0]) return "rgba(80, 220, 120, 0.5)";
+  if (value <= thresholds[1]) return "rgba(180, 220, 80, 0.5)";
+  if (value <= thresholds[2]) return "rgba(240, 200, 60, 0.5)";
+  if (value <= thresholds[3]) return "rgba(255, 150, 60, 0.5)";
+  return "rgba(255, 70, 50, 0.5)";
 }
 
 /** Minimal horizontal AQI bar with position marker */
@@ -85,9 +85,9 @@ function AqiBar({ aqi }: { aqi: number | null }) {
         <div
           style={{
             width: "100%",
-            height: 7,
-            borderRadius: 4,
-            background: "linear-gradient(90deg, rgba(80, 220, 120, 0.45), rgba(180, 220, 80, 0.45), rgba(240, 200, 60, 0.45), rgba(255, 150, 60, 0.45), rgba(255, 70, 50, 0.45))",
+            height: 4,
+            borderRadius: 3,
+            background: "linear-gradient(90deg, rgba(80, 220, 120, 0.32), rgba(180, 220, 80, 0.32), rgba(240, 200, 60, 0.32), rgba(255, 150, 60, 0.32), rgba(255, 70, 50, 0.32))",
           }}
         />
         {/* Position marker */}
@@ -102,11 +102,11 @@ function AqiBar({ aqi }: { aqi: number | null }) {
           >
             <div
               style={{
-                width: 11,
-                height: 11,
+                width: 9,
+                height: 9,
                 borderRadius: "50%",
                 backgroundColor: status?.color ?? "#fff",
-                boxShadow: `0 0 8px ${status?.color ?? "#fff"}, 0 0 16px ${status?.color ?? "#fff"}`,
+                boxShadow: `0 0 6px ${status?.color ?? "#fff"}, 0 0 12px ${status?.color ?? "#fff"}`,
               }}
             />
           </div>
@@ -311,7 +311,7 @@ export const TidalPanel = memo(function TidalPanel({
             <div className="mt-1">
               <Sparkline
                 data={air.hourlyAqi}
-                color={air.aqi !== null ? getAqiStatus(air.aqi).color : "rgba(180, 220, 80, 0.9)"}
+                color="rgba(120, 180, 255, 0.7)"
                 height={50}
                 showArea
                 pulseEndpoint
@@ -362,7 +362,7 @@ export const TidalPanel = memo(function TidalPanel({
                   style={{
                     fontSize: "clamp(10px, 0.75vw, 13px)",
                     fontWeight: 300,
-                    color: "rgba(240, 238, 248, 0.55)",
+                    color: "rgba(240, 238, 248, 0.38)",
                   }}
                 >
                   {p.value !== null ? Math.round(p.value) : "—"}
