@@ -19,6 +19,9 @@ interface SpaceWeatherResponse {
   geomagScale: string;
   solarRadScale: string;
   radioBlackout: string;
+  solarFlux: number | null;
+  latestFlare: string | null;
+  solarWindHistory: number[];
   error?: string;
 }
 
@@ -43,6 +46,9 @@ export function useSpaceWeather() {
     geomagScale: data?.geomagScale ?? "G0",
     solarRadScale: data?.solarRadScale ?? "S0",
     radioBlackout: data?.radioBlackout ?? "R0",
+    solarFlux: data?.solarFlux ?? null,
+    latestFlare: data?.latestFlare ?? null,
+    solarWindHistory: data?.solarWindHistory ?? [],
     isLoading,
     error: error || data?.error,
   };

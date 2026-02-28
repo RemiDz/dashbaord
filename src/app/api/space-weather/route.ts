@@ -8,6 +8,8 @@ import { NextResponse } from "next/server";
  * - solar-wind/plasma    — solar wind speed and proton density
  * - solar-wind/mag       — Bz component (north/south)
  * - noaa-scales.json     — current NOAA scale levels (G/S/R)
+ * - summary/10cm-flux    — Solar Flux Index (SFI)
+ * - summary/solar-flares — latest solar flare class
  */
 
 const SWPC_BASE = "https://services.swpc.noaa.gov/products";
@@ -29,6 +31,9 @@ interface SpaceWeatherData {
   geomagScale: string;
   solarRadScale: string;
   radioBlackout: string;
+  solarFlux: number | null;
+  latestFlare: string | null;
+  solarWindHistory: number[];
   error?: string;
 }
 
@@ -44,32 +49,74 @@ function classifyAlertSeverity(message: string): "green" | "yellow" | "orange" |
 }
 
 function extractAlertType(message: string): string {
-  // Try to extract the first meaningful summary line
   const lines = message.split("\n").filter((l) => l.trim().length > 0);
+
+  // Look for descriptive event lines like "Geomagnetic Storm Watch",
+  // "Solar Radiation Storm Warning", "Radio Blackout Warning" etc.
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip the raw code line (e.g. "Space Weather Message Code: WARK04")
+    if (trimmed.startsWith("Space Weather Message Code:")) continue;
+    // Skip serial number lines
+    if (trimmed.startsWith("Serial Number:")) continue;
+    // Skip date/time lines
+    if (trimmed.startsWith("Issue Time:")) continue;
+
+    // Match prefixed lines: WATCH: ..., WARNING: ..., ALERT: ..., SUMMARY: ...
+    const prefixMatch = trimmed.match(
+      /^(WATCH|WARNING|ALERT|SUMMARY|EXTENDED WARNING):\s*(.+)/i,
+    );
+    if (prefixMatch) {
+      const body = prefixMatch[2].trim();
+      // Try to extract a severity level like G2, S1, R1
+      const levelMatch = message.match(/\b([GSR]\d)\b/);
+      const level = levelMatch ? ` (${levelMatch[1]})` : "";
+      return `${body}${level}`.slice(0, 100);
+    }
+
+    // Match standalone descriptive lines containing known event types
+    if (
+      /geomagnetic storm/i.test(trimmed) ||
+      /solar radiation storm/i.test(trimmed) ||
+      /radio blackout/i.test(trimmed) ||
+      /coronal mass ejection/i.test(trimmed) ||
+      /solar flare/i.test(trimmed) ||
+      /proton event/i.test(trimmed) ||
+      /electron event/i.test(trimmed)
+    ) {
+      const levelMatch = message.match(/\b([GSR]\d)\b/);
+      const level = levelMatch ? ` (${levelMatch[1]})` : "";
+      return `${trimmed}${level}`.slice(0, 100);
+    }
+  }
+
+  // Fallback: use first non-code, non-empty line
   for (const line of lines) {
     const trimmed = line.trim();
     if (
-      trimmed.startsWith("Space Weather Message") ||
-      trimmed.startsWith("WATCH:") ||
-      trimmed.startsWith("WARNING:") ||
-      trimmed.startsWith("ALERT:") ||
-      trimmed.startsWith("SUMMARY:") ||
-      trimmed.startsWith("Extended Warning")
+      !trimmed.startsWith("Space Weather Message Code:") &&
+      !trimmed.startsWith("Serial Number:") &&
+      !trimmed.startsWith("Issue Time:")
     ) {
-      return trimmed.slice(0, 80);
+      return trimmed.slice(0, 100);
     }
   }
-  return lines[0]?.trim().slice(0, 80) ?? "Space Weather Alert";
+
+  return "Space Weather Alert";
 }
 
 export async function GET() {
   try {
-    const [alertsRes, plasmaRes, magRes, scalesRes] = await Promise.allSettled([
-      fetch(`${SWPC_BASE}/alerts.json`, { next: { revalidate: 600 } }),
-      fetch(`${SWPC_BASE}/solar-wind/plasma-7-day.json`, { next: { revalidate: 600 } }),
-      fetch(`${SWPC_BASE}/solar-wind/mag-7-day.json`, { next: { revalidate: 600 } }),
-      fetch(`${SWPC_BASE}/noaa-scales.json`, { next: { revalidate: 600 } }),
-    ]);
+    const [alertsRes, plasmaRes, magRes, scalesRes, fluxRes, flaresRes] =
+      await Promise.allSettled([
+        fetch(`${SWPC_BASE}/alerts.json`, { next: { revalidate: 600 } }),
+        fetch(`${SWPC_BASE}/solar-wind/plasma-7-day.json`, { next: { revalidate: 600 } }),
+        fetch(`${SWPC_BASE}/solar-wind/mag-7-day.json`, { next: { revalidate: 600 } }),
+        fetch(`${SWPC_BASE}/noaa-scales.json`, { next: { revalidate: 600 } }),
+        fetch(`${SWPC_BASE}/summary/10cm-flux.json`, { next: { revalidate: 600 } }),
+        fetch(`${SWPC_BASE}/summary/solar-flares-24-hour.json`, { next: { revalidate: 600 } }),
+      ]);
 
     // ── Parse alerts ──
     const alerts: SpaceWeatherAlert[] = [];
@@ -93,10 +140,11 @@ export async function GET() {
       }
     }
 
-    // ── Parse solar wind plasma (speed + density) ──
+    // ── Parse solar wind plasma (speed + density + history) ──
     let solarWindSpeed: number | null = null;
     let solarWindSpeedTrend: "rising" | "falling" | "stable" = "stable";
     let protonDensity: number | null = null;
+    const solarWindHistory: number[] = [];
 
     if (plasmaRes.status === "fulfilled" && plasmaRes.value.ok) {
       try {
@@ -117,6 +165,13 @@ export async function GET() {
             const diff = solarWindSpeed - prevSpeed;
             if (diff > 20) solarWindSpeedTrend = "rising";
             else if (diff < -20) solarWindSpeedTrend = "falling";
+
+            // Extract last ~24 data points for sparkline
+            const historySlice = recent.slice(-24);
+            for (const row of historySlice) {
+              const speed = parseFloat(row[2]);
+              if (!isNaN(speed)) solarWindHistory.push(Math.round(speed));
+            }
           }
         }
       } catch {
@@ -174,6 +229,46 @@ export async function GET() {
       }
     }
 
+    // ── Parse Solar Flux Index (10.7cm flux) ──
+    let solarFlux: number | null = null;
+
+    if (fluxRes.status === "fulfilled" && fluxRes.value.ok) {
+      try {
+        const fluxData = await fluxRes.value.json();
+        // Returns { "Flux": "123", "TimeStamp": "..." }
+        if (fluxData && fluxData.Flux) {
+          const val = parseFloat(fluxData.Flux);
+          if (!isNaN(val)) solarFlux = Math.round(val);
+        }
+      } catch {
+        // SFI parsing non-critical
+      }
+    }
+
+    // ── Parse latest solar flare ──
+    let latestFlare: string | null = null;
+
+    if (flaresRes.status === "fulfilled" && flaresRes.value.ok) {
+      try {
+        const flaresData = await flaresRes.value.json();
+        // Returns summary object with class info
+        if (flaresData) {
+          // The summary endpoint returns something like:
+          // { "24hr_class": "C2.1", "latest_event": {...} }
+          // or could be an object with a class field
+          if (flaresData["24hr_class"] && flaresData["24hr_class"] !== "none") {
+            latestFlare = flaresData["24hr_class"];
+          } else if (flaresData.class && flaresData.class !== "none") {
+            latestFlare = flaresData.class;
+          } else if (typeof flaresData === "string" && flaresData.trim()) {
+            latestFlare = flaresData.trim();
+          }
+        }
+      } catch {
+        // Flare parsing non-critical
+      }
+    }
+
     const result: SpaceWeatherData = {
       alerts: alerts.reverse(), // Most recent first
       solarWindSpeed,
@@ -184,6 +279,9 @@ export async function GET() {
       geomagScale,
       solarRadScale,
       radioBlackout,
+      solarFlux,
+      latestFlare,
+      solarWindHistory,
     };
 
     return NextResponse.json(result);
@@ -199,6 +297,9 @@ export async function GET() {
       geomagScale: "G0",
       solarRadScale: "S0",
       radioBlackout: "R0",
+      solarFlux: null,
+      latestFlare: null,
+      solarWindHistory: [],
       error: "Data temporarily unavailable",
     } satisfies SpaceWeatherData);
   }

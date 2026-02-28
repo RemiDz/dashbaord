@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { Panel } from "@/components/shared/Panel";
+import { Sparkline } from "@/components/shared/Sparkline";
 import { useSpaceWeather } from "@/hooks/useSpaceWeather";
 
 interface SpaceWeatherPanelProps {
@@ -34,6 +35,15 @@ function getScaleColor(scale: string): string {
   if (level >= 4) return "rgba(255, 80, 60, 0.9)";
   if (level >= 3) return "rgba(255, 150, 80, 0.9)";
   if (level >= 1) return "rgba(230, 200, 80, 0.9)";
+  return "rgba(100, 220, 170, 0.9)";
+}
+
+function getFlareColor(flare: string | null): string {
+  if (!flare) return "rgba(100, 220, 170, 0.9)";
+  const upper = flare.toUpperCase();
+  if (upper.startsWith("X")) return "rgba(255, 80, 60, 0.9)";
+  if (upper.startsWith("M")) return "rgba(255, 150, 80, 0.9)";
+  if (upper.startsWith("C")) return "rgba(230, 200, 80, 0.9)";
   return "rgba(100, 220, 170, 0.9)";
 }
 
@@ -158,14 +168,11 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
         }}
       />
 
-      {/* ── Data rows ── */}
-      <div className="space-y-2.5 mt-auto">
-        {/* Solar Wind Speed */}
+      {/* ── Data grid — 2 columns ── */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
         <DataRow
           label="Solar Wind"
-          value={
-            sw.solarWindSpeed !== null ? `${sw.solarWindSpeed}` : "—"
-          }
+          value={sw.solarWindSpeed !== null ? `${sw.solarWindSpeed}` : "—"}
           unit="km/s"
           suffix={
             sw.solarWindSpeed !== null
@@ -179,22 +186,20 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
           }
         />
 
-        {/* Bz Component */}
         <DataRow
           label="Bz Component"
           value={sw.bzComponent !== null ? `${sw.bzComponent}` : "—"}
           unit="nT"
           suffix={
             sw.bzDirection === "south"
-              ? "↓ South"
+              ? "↓S"
               : sw.bzDirection === "north"
-                ? "↑ North"
+                ? "↑N"
                 : undefined
           }
           color={getBzColor(sw.bzComponent, sw.bzDirection)}
         />
 
-        {/* Proton Density */}
         <DataRow
           label="Proton Density"
           value={sw.protonDensity !== null ? `${sw.protonDensity}` : "—"}
@@ -205,7 +210,41 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
               : undefined
           }
         />
+
+        <DataRow
+          label="Solar Flux"
+          value={sw.solarFlux !== null ? `${sw.solarFlux}` : "—"}
+          unit="SFU"
+          color={
+            sw.solarFlux !== null && sw.solarFlux > 150
+              ? "rgba(255, 150, 80, 0.9)"
+              : undefined
+          }
+        />
+
+        <DataRow
+          label="Latest Flare"
+          value={sw.latestFlare ?? "Quiet"}
+          unit=""
+          color={getFlareColor(sw.latestFlare)}
+        />
       </div>
+
+      {/* ── Solar Wind Sparkline ── */}
+      {sw.solarWindHistory.length >= 2 && (
+        <div className="mt-3">
+          <span className="data-label" style={{ fontSize: "0.5rem", marginBottom: 4, display: "block" }}>
+            Solar Wind 24hr
+          </span>
+          <Sparkline
+            data={sw.solarWindHistory}
+            color="rgba(160, 120, 255, 0.8)"
+            height={50}
+            showArea={true}
+            referenceLines={2}
+          />
+        </div>
+      )}
     </Panel>
   );
 });
@@ -224,20 +263,20 @@ function DataRow({
   color?: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between">
-      <span className="data-label">{label}</span>
+    <div className="flex flex-col">
+      <span className="data-label" style={{ fontSize: "0.5rem" }}>{label}</span>
       <div className="flex items-baseline gap-1">
         <span
           className="font-mono"
           style={{
-            fontSize: "clamp(14px, 1vw, 17px)",
+            fontSize: "clamp(13px, 0.9vw, 16px)",
             fontWeight: 300,
             color: color || "var(--text-primary)",
           }}
         >
           {value}
         </span>
-        <span className="data-label">{unit}</span>
+        {unit && <span className="data-label" style={{ fontSize: "0.45rem" }}>{unit}</span>}
         {suffix && (
           <span
             className="font-mono"
