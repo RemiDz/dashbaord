@@ -174,7 +174,7 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const pad = { top: 14, bottom: 6, left: 0, right: 28 };
+      const pad = { top: 14, bottom: 18, left: 0, right: 28 };
       const plotW = w - pad.left - pad.right;
       const plotH = h - pad.top - pad.bottom;
 
