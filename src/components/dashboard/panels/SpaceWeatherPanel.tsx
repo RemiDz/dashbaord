@@ -75,7 +75,7 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
         setAlertIdx((i) => (i + 1) % sw.alerts.length);
         setFadeIn(true);
       }, 500);
-    }, 10_000);
+    }, 30_000);
     return () => clearInterval(id);
   }, [sw.alerts.length]);
 
@@ -122,7 +122,7 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
 
       {/* ── Glass divider ── */}
       <div
-        className="w-full my-3"
+        className="w-full my-2"
         style={{
           height: 1,
           background:
@@ -131,7 +131,7 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
       />
 
       {/* ── Data grid — 2 columns ── */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
         <DataRow
           label="Solar Wind"
           value={sw.solarWindSpeed !== null ? `${sw.solarWindSpeed}` : "—"}
@@ -194,7 +194,7 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
 
       {/* ── Solar Wind Sparkline with thresholds ── */}
       {sw.solarWindHistory.length >= 2 && (
-        <div className="mt-3 flex-1 min-h-0">
+        <div className="mt-2">
           <span className="data-label" style={{ fontSize: "0.5rem", marginBottom: 4, display: "block" }}>
             Solar Wind 24hr
           </span>
@@ -212,14 +212,14 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
 
       {/* ── Alert container ── */}
       <div
-        className="mt-auto"
+        className="mt-2 flex-1 min-h-0 flex flex-col"
         style={{
           background: hasAlerts
             ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.04)")
             : "rgba(100, 220, 170, 0.02)",
           borderTop: `1px solid ${hasAlerts ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.1)") : "rgba(100, 220, 170, 0.06)"}`,
           borderRadius: 8,
-          padding: "6px 10px",
+          padding: "8px 10px",
         }}
       >
         {/* Header: ALERTS + count */}
@@ -242,16 +242,16 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
         {/* Alert display */}
         {hasAlerts ? (
           <div
+            className="flex-1 flex items-center"
             style={{
               transition: "opacity 0.5s ease",
               opacity: fadeIn ? 1 : 0,
-              minHeight: 28,
             }}
           >
             <p
               className="font-body"
               style={{
-                fontSize: "clamp(10px, 0.75vw, 12px)",
+                fontSize: "clamp(14px, 1.2vw, 18px)",
                 fontWeight: 400,
                 color: SEVERITY_COLORS[sw.alerts[alertIdx % sw.alerts.length]?.severity ?? "green"],
                 lineHeight: 1.4,
@@ -261,7 +261,7 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-2" style={{ minHeight: 28 }}>
+          <div className="flex-1 flex items-center gap-2">
             <div
               style={{
                 width: 6,
@@ -287,13 +287,13 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
 
         {/* Carousel dots */}
         {sw.alerts.length > 1 && (
-          <div className="flex justify-center gap-1 mt-1">
+          <div className="flex justify-center gap-1.5 mt-1">
             {sw.alerts.map((_, i) => (
               <div
                 key={i}
                 style={{
-                  width: 4,
-                  height: 4,
+                  width: 6,
+                  height: 6,
                   borderRadius: "50%",
                   background: i === alertIdx % sw.alerts.length
                     ? SEVERITY_COLORS[highestSeverity]
