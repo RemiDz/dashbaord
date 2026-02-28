@@ -13,7 +13,7 @@ export const BeachCamPanel = memo(function BeachCamPanel({
   style,
   animationDelay,
 }: BeachCamPanelProps) {
-  const { name, country, snapshotUrl, localTime, temp, isLoading, error } =
+  const { name, country, localTime, temp, isLoading, error } =
     useBeachCam();
 
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -21,36 +21,49 @@ export const BeachCamPanel = memo(function BeachCamPanel({
   const [imgError, setImgError] = useState(false);
   const [fading, setFading] = useState(false);
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const refreshRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
-  // When snapshot URL changes, trigger crossfade
+  // Load image via our server-side proxy (bypasses CORS/hotlinking)
   useEffect(() => {
-    if (!snapshotUrl) return;
+    if (!name) return; // Wait until we have beach metadata
 
-    // Append cache-busting timestamp
-    const bustUrl = `${snapshotUrl}${snapshotUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    function loadImage() {
+      const proxyUrl = `/api/beach-cam/image?t=${Date.now()}`;
 
-    // Preload the new image
-    const img = new Image();
-    img.onload = () => {
-      setImgError(false);
-      setPrevImgSrc(imgSrc);
-      setImgSrc(bustUrl);
-      setFading(true);
+      const img = new window.Image();
+      img.onload = () => {
+        setImgError(false);
+        setPrevImgSrc((prev) => {
+          // Only set prev for crossfade if we already had an image
+          if (prev !== null || imgSrc !== null) {
+            setFading(true);
+            clearTimeout(fadeTimeoutRef.current);
+            fadeTimeoutRef.current = setTimeout(() => {
+              setFading(false);
+              setPrevImgSrc(null);
+            }, 1200);
+          }
+          return imgSrc;
+        });
+        setImgSrc(proxyUrl);
+      };
+      img.onerror = () => {
+        setImgError(true);
+      };
+      img.src = proxyUrl;
+    }
 
+    loadImage();
+
+    // Refresh image every 60 seconds
+    refreshRef.current = setInterval(loadImage, 60 * 1000);
+
+    return () => {
       clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = setTimeout(() => {
-        setFading(false);
-        setPrevImgSrc(null);
-      }, 1200);
+      clearInterval(refreshRef.current);
     };
-    img.onerror = () => {
-      setImgError(true);
-    };
-    img.src = bustUrl;
-
-    return () => clearTimeout(fadeTimeoutRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshotUrl]);
+  }, [name]);
 
   const hasData = name !== null && !imgError;
 
