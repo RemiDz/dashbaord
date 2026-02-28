@@ -196,6 +196,12 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Moon ambient glow breathing */
+@keyframes moonBreathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
 /* Cosmic dust drift */
 @keyframes dustDrift {
   0% { transform: translateY(0) translateX(0); }
