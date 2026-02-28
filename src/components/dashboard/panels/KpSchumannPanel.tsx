@@ -1,11 +1,15 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { Sparkline } from "@/components/shared/Sparkline";
 import { AnimatedValue } from "@/components/shared/AnimatedValue";
 import { useSchumannData } from "@/hooks/useSchumannData";
 import { useKpIndex } from "@/hooks/useKpIndex";
+import { useLunarData } from "@/hooks/useLunarData";
+import { useTidalData } from "@/hooks/useTidalData";
+import { generateInsight, getTimeOfDay, type EarthState } from "@/lib/insight-engine";
+import { getBinaraRecommendation, type BinaraRecommendation } from "@/lib/binara-engine";
 
 interface KpSchumannPanelProps {
   style?: React.CSSProperties;
@@ -38,6 +42,8 @@ export const KpSchumannPanel = memo(function KpSchumannPanel({
 }: KpSchumannPanelProps) {
   const schumann = useSchumannData();
   const kp = useKpIndex();
+  const lunar = useLunarData();
+  const tidal = useTidalData();
 
   const schumannSpark = schumann.history.map((e) => e.frequency);
   const kpSpark = kp.history.map((e) => e.kp);
@@ -49,6 +55,33 @@ export const KpSchumannPanel = memo(function KpSchumannPanel({
     : schumann.isSpike
       ? "rgba(120, 180, 255, 0.9)"
       : undefined;
+
+  // Daily Insight
+  const hasInsightData = kp.current !== null || !kp.isLoading;
+  const insight = hasInsightData
+    ? generateInsight({
+        kp: kp.current,
+        schumannDeviation: schumann.deviation,
+        isSpike: schumann.isSpike,
+        moonPhase: lunar.phaseName,
+        moonSign: lunar.sign,
+        moonElement: lunar.element,
+        illumination: lunar.illumination,
+        timeOfDay: getTimeOfDay(new Date().getHours()),
+        tidalState: tidal.rising ? "rising" : "falling",
+      } satisfies EarthState)
+    : "";
+
+  // Binara Recommendation
+  const [rec, setRec] = useState<BinaraRecommendation | null>(null);
+  useEffect(() => {
+    setRec(
+      getBinaraRecommendation(new Date().getHours(), {
+        kp: kp.current,
+        schumannDeviation: schumann.deviation,
+      }),
+    );
+  }, [kp.current, schumann.deviation]);
 
   return (
     <Panel
@@ -198,6 +231,83 @@ export const KpSchumannPanel = memo(function KpSchumannPanel({
         </div>
 
         <p className="data-label mt-1">24h history · storm threshold 4+</p>
+      </div>
+
+      {/* ═══ Glass divider ═══ */}
+      <div
+        className="w-full my-2"
+        style={{
+          height: 1,
+          background:
+            "linear-gradient(90deg, transparent, rgba(200, 196, 220, 0.08), transparent)",
+        }}
+      />
+
+      {/* ═══ Compact Insight + Binara ═══ */}
+      <div className="flex flex-col gap-1.5">
+        {/* Daily Insight — single line italic */}
+        <p
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: "clamp(11px, 0.8vw, 14px)",
+            fontStyle: "italic",
+            fontWeight: 300,
+            lineHeight: 1.4,
+            color: "var(--text-secondary)",
+            opacity: 0.8,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical" as const,
+            overflow: "hidden",
+          }}
+        >
+          {insight || "Analysing conditions\u2026"}
+        </p>
+
+        {/* Binara — compact inline */}
+        {rec && (
+          <div
+            className="flex items-center justify-between rounded-lg px-2 py-1"
+            style={{
+              background: `linear-gradient(135deg, ${rec.color.replace(/[\d.]+\)$/, "0.03)")}, ${rec.color.replace(/[\d.]+\)$/, "0.05)")})`,
+              border: `1px solid ${rec.color.replace(/[\d.]+\)$/, "0.1)")}`,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(7px, 0.55vw, 9px)",
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase" as const,
+                color: "var(--moonsilver)",
+                opacity: 0.5,
+              }}
+            >
+              Binara
+            </span>
+            <span
+              className="font-mono"
+              style={{
+                color: rec.color,
+                fontWeight: 300,
+                fontSize: "clamp(12px, 0.9vw, 15px)",
+              }}
+            >
+              {rec.frequency} Hz
+            </span>
+            <span
+              className="font-body"
+              style={{
+                color: rec.color,
+                opacity: 0.7,
+                fontSize: "clamp(10px, 0.7vw, 12px)",
+              }}
+            >
+              {rec.band}
+            </span>
+          </div>
+        )}
       </div>
     </Panel>
   );
