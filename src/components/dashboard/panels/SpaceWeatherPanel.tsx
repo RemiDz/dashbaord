@@ -64,9 +64,19 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
       )
     : "green";
 
+  const tickerText = hasAlerts
+    ? sw.alerts.map((a) => a.type).join("  ●  ")
+    : "No active space weather alerts";
+  const tickerColor = hasAlerts
+    ? SEVERITY_COLORS[highestSeverity]
+    : "rgba(100, 220, 170, 0.7)";
+  const tickerBg = hasAlerts
+    ? SEVERITY_COLORS[highestSeverity].replace(/[\d.]+\)$/, "0.06)")
+    : "rgba(100, 220, 170, 0.03)";
+
   return (
     <Panel
-      className="flex flex-col"
+      className="flex flex-col relative overflow-hidden"
       style={style}
       animationDelay={animationDelay}
       glowColor={
@@ -77,61 +87,8 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
     >
       <span className="panel-label">Space Weather</span>
 
-      {/* ── Alert section ── */}
-      <div className="mt-2 flex-shrink-0">
-        {hasAlerts ? (
-          <div className="space-y-1.5">
-            {sw.alerts.slice(0, 2).map((alert, i) => (
-              <div
-                key={i}
-                className="rounded-md px-2.5 py-1.5"
-                style={{
-                  background: SEVERITY_COLORS[alert.severity].replace(
-                    /[\d.]+\)$/,
-                    "0.06)",
-                  ),
-                  borderLeft: `2px solid ${SEVERITY_COLORS[alert.severity]}`,
-                }}
-              >
-                <p
-                  className="font-body"
-                  style={{
-                    fontSize: "clamp(10px, 0.75vw, 12px)",
-                    color: SEVERITY_COLORS[alert.severity],
-                    fontWeight: 400,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {alert.type}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                background: "rgba(100, 220, 170, 0.7)",
-                boxShadow: "0 0 6px rgba(100, 220, 170, 0.3)",
-              }}
-            />
-            <span
-              className="font-body"
-              style={{
-                color: "rgba(100, 220, 170, 0.7)",
-                fontSize: "clamp(12px, 0.85vw, 14px)",
-                fontStyle: "italic",
-              }}
-            >
-              No active alerts
-            </span>
-          </div>
-        )}
-      </div>
-
       {/* ── NOAA Scales ── */}
-      <div className="flex items-center gap-3 mt-3">
+      <div className="flex items-center gap-3 mt-2">
         {[
           { label: "Geomag", value: sw.geomagScale },
           { label: "Solar", value: sw.solarRadScale },
@@ -230,9 +187,9 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
         />
       </div>
 
-      {/* ── Solar Wind Sparkline ── */}
+      {/* ── Solar Wind Sparkline with thresholds ── */}
       {sw.solarWindHistory.length >= 2 && (
-        <div className="mt-3">
+        <div className="mt-3 flex-1 min-h-0">
           <span className="data-label" style={{ fontSize: "0.5rem", marginBottom: 4, display: "block" }}>
             Solar Wind 24hr
           </span>
@@ -241,10 +198,46 @@ export const SpaceWeatherPanel = memo(function SpaceWeatherPanel({
             color="rgba(160, 120, 255, 0.8)"
             height={50}
             showArea={true}
-            referenceLines={2}
+            threshold={400}
+            thresholdColor="rgba(160, 120, 255, 0.15)"
+            referenceLines={0}
           />
         </div>
       )}
+
+      {/* ── Alert ticker at bottom ── */}
+      <div
+        style={{
+          height: 30,
+          marginTop: "auto",
+          background: tickerBg,
+          borderTop: `1px solid ${tickerColor.replace(/[\d.]+\)$/, "0.12)")}`,
+          borderRadius: "0 0 14px 14px",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          position: "relative",
+          marginLeft: -16,
+          marginRight: -16,
+          marginBottom: -16,
+          paddingLeft: 0,
+          paddingRight: 0,
+        }}
+      >
+        <div
+          style={{
+            whiteSpace: "nowrap",
+            animation: "tickerScroll 25s linear infinite",
+            fontFamily: "var(--font-body)",
+            fontSize: "clamp(10px, 0.75vw, 12px)",
+            fontWeight: 400,
+            color: tickerColor,
+            paddingLeft: "100%",
+          }}
+        >
+          {tickerText}
+        </div>
+      </div>
     </Panel>
   );
 });

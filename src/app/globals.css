@@ -208,6 +208,12 @@
   50% { opacity: 1; transform: scale(1.04); }
 }
 
+/* Alert ticker scroll */
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-200%); }
+}
+
 /* Cosmic dust drift */
 @keyframes dustDrift {
   0% { transform: translateY(0) translateX(0); }
