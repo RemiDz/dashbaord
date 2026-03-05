@@ -41,38 +41,19 @@ export async function GET() {
     // Webcam fetch failed, fall through to Unsplash
   }
 
-  // Fallback: fetch an Unsplash beach photo
-  const unsplashUrl = `https://source.unsplash.com/800x600/?${beach.unsplashQuery}`;
-
-  try {
-    const res = await fetch(unsplashUrl, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (res.ok) {
-      const contentType = res.headers.get("content-type") || "image/jpeg";
-      const buffer = await res.arrayBuffer();
-      return new NextResponse(buffer, {
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=290, stale-while-revalidate=60",
-        },
-      });
-    }
-  } catch {
-    // Unsplash also failed
-  }
-
-  // Last resort: transparent pixel
-  const pixel = Buffer.from(
-    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-    "base64",
-  );
-  return new NextResponse(pixel, {
+  // Fallback: return a minimal SVG ocean gradient placeholder
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a284f"/>
+      <stop offset="50%" stop-color="#0f3d6e"/>
+      <stop offset="100%" stop-color="#1a5c8a"/>
+    </linearGradient></defs>
+    <rect width="800" height="600" fill="url(#g)"/>
+  </svg>`;
+  return new NextResponse(svg, {
     headers: {
-      "Content-Type": "image/gif",
-      "Cache-Control": "no-cache",
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=60",
     },
   });
 }

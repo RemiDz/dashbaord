@@ -113,7 +113,19 @@ export function StarField() {
       starsRef.current = generateStars(w, h);
     };
 
-    const draw = () => {
+    let lastFrameTime = 0;
+    const FRAME_INTERVAL = 1000 / 20; // Cap at 20fps — background twinkle doesn't need more
+
+    const draw = (timestamp?: number) => {
+      // Frame rate limiter for RPi5 24/7 operation
+      if (timestamp !== undefined) {
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) {
+          rafRef.current = requestAnimationFrame(draw);
+          return;
+        }
+        lastFrameTime = timestamp;
+      }
+
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const { w, h } = sizeRef.current;

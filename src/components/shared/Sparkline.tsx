@@ -198,13 +198,21 @@ export function Sparkline({
 
     draw();
 
-    // When pulsing, run a lightweight animation loop for the endpoint
+    // When pulsing, run a frame-rate-capped animation loop for the endpoint
     let pulseAnimId: number | null = null;
-    function pulseLoop() {
-      if (pulseRef.current) {
-        draw();
-        pulseAnimId = requestAnimationFrame(pulseLoop);
+    let pulseLastFrame = 0;
+    const PULSE_INTERVAL = 1000 / 30; // 30fps cap
+    function pulseLoop(timestamp?: number) {
+      if (!pulseRef.current) return;
+      if (timestamp !== undefined) {
+        if (timestamp - pulseLastFrame < PULSE_INTERVAL) {
+          pulseAnimId = requestAnimationFrame(pulseLoop);
+          return;
+        }
+        pulseLastFrame = timestamp;
       }
+      draw();
+      pulseAnimId = requestAnimationFrame(pulseLoop);
     }
     if (pulseEndpoint) pulseLoop();
 

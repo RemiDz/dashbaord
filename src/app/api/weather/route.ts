@@ -18,6 +18,7 @@ function wmoEmoji(code: number): string {
   if (code <= 69) return "\uD83C\uDF27\uFE0F"; // rain
   if (code <= 79) return "\u2744\uFE0F"; // snow
   if (code <= 82) return "\uD83C\uDF27\uFE0F"; // rain showers
+  if (code <= 84) return "\uD83C\uDF28\uFE0F"; // mixed rain/snow showers
   if (code <= 86) return "\u2744\uFE0F"; // snow showers
   if (code >= 95) return "\u26C8\uFE0F"; // thunderstorm
   return "\u2600\uFE0F";
@@ -35,6 +36,7 @@ function wmoCondition(code: number): string {
   if (code <= 75) return "Snow";
   if (code <= 77) return "Snow Grains";
   if (code <= 82) return "Rain Showers";
+  if (code <= 84) return "Sleet Showers";
   if (code <= 86) return "Snow Showers";
   if (code >= 95) return "Thunderstorm";
   return "Clear";
@@ -113,7 +115,9 @@ export async function GET(request: Request) {
     };
 
     // Parse daily forecast (up to 5 days)
-    const todayStr = new Date().toISOString().slice(0, 10);
+    // Use the first date from the API response as "today" — it respects the
+    // timezone=auto parameter, avoiding UTC vs local date mismatch at midnight.
+    const todayStr = data.daily.time[0] ?? new Date().toISOString().slice(0, 10);
     const forecast = data.daily.time.slice(0, 5).map((dateStr: string, i: number) => ({
       day: dayLabel(new Date(dateStr + "T12:00:00Z"), dateStr === todayStr),
       icon: wmoEmoji(data.daily.weather_code[i]),

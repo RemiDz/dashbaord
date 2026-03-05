@@ -383,8 +383,17 @@ function TidalChart({ hourly, nextHigh, nextLow, height = 60 }: TidalChartProps)
       }
     }
 
-    // Animate the water ripples
-    function loop() {
+    // Animate the water ripples — capped at 30fps for RPi5 performance
+    let lastFrameTime = 0;
+    const FRAME_INTERVAL = 1000 / 30;
+    function loop(timestamp?: number) {
+      if (timestamp !== undefined) {
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) {
+          animRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        lastFrameTime = timestamp;
+      }
       draw();
       animRef.current = requestAnimationFrame(loop);
     }

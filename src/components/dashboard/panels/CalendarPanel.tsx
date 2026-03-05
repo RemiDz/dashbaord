@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { Panel } from "@/components/shared/Panel";
 import { getMoonPhase, toJulianDate, getPhaseName } from "@/lib/lunar-calc";
 
@@ -70,6 +70,23 @@ export const CalendarPanel = memo(function CalendarPanel({
   style,
   animationDelay,
 }: CalendarPanelProps) {
+  // Force re-render at midnight so the calendar updates for 24/7 operation
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    function scheduleNextMidnight() {
+      const now = new Date();
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const msUntilMidnight = tomorrow.getTime() - now.getTime();
+      return setTimeout(() => {
+        setTick((t) => t + 1);
+        // Schedule the next midnight after this one fires
+        midnightTimer = scheduleNextMidnight();
+      }, msUntilMidnight + 1000); // +1s buffer to ensure we're past midnight
+    }
+    let midnightTimer = scheduleNextMidnight();
+    return () => clearTimeout(midnightTimer);
+  }, []);
+
   const now = new Date();
   const todayStr = dateKey(now);
 
