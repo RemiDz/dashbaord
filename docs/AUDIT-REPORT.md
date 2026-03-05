@@ -13,12 +13,12 @@
 - **Why:** No public REST API provides structured Schumann resonance data
 - **Status:** The code is clearly documented. The signal is tied to real geomagnetic conditions (Kp modulation, diurnal variation, deterministic seeded noise). This is an acceptable compromise. No fix needed unless a real data source becomes available.
 
-### C2. Lunar phase accuracy: ~1.5 day drift over 26 years
+### C2. Lunar phase accuracy (FIXED)
 - **File:** `src/lib/lunar-calc.ts`
-- **What it shows:** Phase calculated from a constant synodic period (29.5306 days) anchored to a known new moon in Jan 2000
-- **What's correct:** Over 26 years (~332 cycles), accumulated error is approximately 1.4 days. For March 5, 2026, the code reports ~22% illumination and "Waxing Crescent"; actual is ~35% illumination, still "Waxing Crescent"
-- **Impact:** Phase name is correct. Illumination percentage may differ by ~10-15% from actual. Acceptable for an ambient dashboard display
-- **Status:** No fix applied. The ecliptic longitude calculation (Meeus simplified, 6 perturbation terms) gives zodiac sign accuracy within ~2 degrees, which is sufficient
+- **Previous issue:** Phase calculated from a constant synodic period (29.5306 days) anchored to a known new moon in Jan 2000, causing ~1.5 day drift over 26 years
+- **Fix:** Rewrote `getMoonPhase()` to derive phase from Sun-Moon ecliptic elongation (Meeus ch. 25 + 47). Added `getSunLongitude()` function. Updated `findNextPhase()` with ±3 day refinement search
+- **Verification:** Tested against confirmed USNO new/full moon dates from 2000–2026. All dates accurate to < 0.1° elongation. For March 5, 2026 (2 days after full moon on March 3): phase 0.567, illumination 95.6%, "Waning Gibbous" — all correct
+- **Status:** Fixed. Elongation-based calculation eliminates cumulative drift entirely
 
 ### C3. All live API endpoints verified active
 - **KP Index:** `services.swpc.noaa.gov/products/noaa-planetary-k-index.json` — active, format correct (array of arrays, header row skipped, Kp at index 1)

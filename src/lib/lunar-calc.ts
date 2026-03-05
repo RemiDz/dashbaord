@@ -2,7 +2,8 @@
  * Client-side lunar calculations.
  *
  * Algorithms based on Jean Meeus, "Astronomical Algorithms" (2nd ed.).
- * Accuracy: phase ±0.5 day, ecliptic longitude ±2°, illumination ±2%.
+ * Phase and illumination derived from Sun-Moon elongation (Meeus ch. 47 + 25).
+ * Accuracy: ecliptic longitude ±2°, illumination ±3%, phase name reliable.
  * Sufficient for a dashboard display — not for navigation.
  */
 
@@ -36,7 +37,6 @@ export interface LunarData {
 // ── Constants ──────────────────────────────────────────────
 
 const SYNODIC_MONTH = 29.53058868; // days
-const KNOWN_NEW_MOON = 2451550.1; // JDE of a known new moon (2000 Jan 6 18:14 UTC)
 
 const ZODIAC = [
   { name: "Aries", symbol: "\u2648", element: "Fire", elementSymbol: "\uD83D\uDD25" },
@@ -105,20 +105,53 @@ function fromJulianDate(jd: number): Date {
   return new Date(Date.UTC(year, month - 1, d, Math.floor(h), Math.round((h % 1) * 60)));
 }
 
-// ── Moon Phase ─────────────────────────────────────────────
+// ── Sun Ecliptic Longitude (Meeus ch. 25 simplified) ──────
+
+/**
+ * Low-precision sun ecliptic longitude — accurate to ~0.01°.
+ */
+function getSunLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525.0;
+
+  // Mean longitude (deg)
+  const L0 = 280.46646 + 36000.76983 * T;
+
+  // Mean anomaly (deg)
+  const M = 357.52911 + 35999.05029 * T;
+
+  const toRad = Math.PI / 180;
+
+  // Equation of center
+  const C =
+    (1.914602 - 0.004817 * T) * Math.sin(M * toRad) +
+    (0.019993 - 0.000101 * T) * Math.sin(2 * M * toRad) +
+    0.000289 * Math.sin(3 * M * toRad);
+
+  const sunLon = L0 + C;
+  return ((sunLon % 360) + 360) % 360;
+}
+
+// ── Moon Phase (from Sun-Moon elongation) ─────────────────
 
 /**
  * Returns the moon's phase as a fraction 0–1 (0 = new, 0.5 = full).
+ * Derived from the angular elongation between Moon and Sun ecliptic
+ * longitudes (Meeus perturbation terms), not from a drifting epoch count.
  */
 export function getMoonPhase(jd: number): number {
-  const daysSinceNew = jd - KNOWN_NEW_MOON;
-  const cycles = daysSinceNew / SYNODIC_MONTH;
-  return cycles - Math.floor(cycles);
+  const moonLon = getMoonLongitude(jd);
+  const sunLon = getSunLongitude(jd);
+
+  // Elongation: 0° at new moon, 180° at full moon
+  let elongation = moonLon - sunLon;
+  elongation = ((elongation % 360) + 360) % 360;
+
+  return elongation / 360;
 }
 
 /**
  * Returns illumination fraction 0–1.
- * Uses the simple cosine approximation from the phase angle.
+ * Derived from the Sun-Moon elongation angle.
  */
 function getIllumination(phase: number): number {
   return (1 - Math.cos(phase * 2 * Math.PI)) / 2;
@@ -183,10 +216,29 @@ function getZodiacSign(longitude: number) {
 
 function findNextPhase(jd: number, targetPhase: number): Date {
   // targetPhase: 0 = new, 0.5 = full
+  // Start with a synodic-period estimate, then refine by stepping
   const currentPhase = getMoonPhase(jd);
   let daysAhead = (targetPhase - currentPhase) * SYNODIC_MONTH;
   if (daysAhead <= 0) daysAhead += SYNODIC_MONTH;
-  return fromJulianDate(jd + daysAhead);
+
+  // Refine: step in 0.5-day increments near the estimate to find the crossing
+  let bestJd = jd + daysAhead;
+  let bestDist = Math.abs(getMoonPhase(bestJd) - targetPhase);
+  // Handle wrap-around for new moon (target 0)
+  if (targetPhase === 0) bestDist = Math.min(bestDist, 1 - bestDist);
+
+  for (let offset = -3; offset <= 3; offset += 0.25) {
+    const testJd = jd + daysAhead + offset;
+    let phase = getMoonPhase(testJd);
+    let dist = Math.abs(phase - targetPhase);
+    if (targetPhase === 0) dist = Math.min(dist, 1 - dist);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestJd = testJd;
+    }
+  }
+
+  return fromJulianDate(bestJd);
 }
 
 function formatDateBritish(date: Date): string {
