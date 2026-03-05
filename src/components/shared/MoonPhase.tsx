@@ -219,8 +219,11 @@ export function MoonPhase({ illumination, phase, size = 200 }: MoonPhaseProps) {
 
     // ── Terminator (shadow) ──
     const pa = phase * Math.PI * 2;
-    const k = Math.cos(pa);
+    const rawK = Math.cos(pa);
     const isWax = Math.sin(pa) >= 0;
+    // For waning phases, negate k so the terminator sweeps from the lit limb
+    // toward the dark limb (right side), matching the shadow direction.
+    const k = isWax ? rawK : -rawK;
     const steps = 120;
 
     // Soft penumbral gradient (~15px at render scale)
