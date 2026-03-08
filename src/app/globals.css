@@ -440,6 +440,17 @@ body {
 .card-stagger > *:nth-child(7) { animation-delay: 0.9s; }
 
 /* ============================================================
+   Dashboard Viewport — dynamic viewport height for iOS Safari
+   ============================================================ */
+
+.dashboard-viewport {
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ============================================================
    Dashboard Grid — Responsive
    ============================================================ */
 
@@ -448,6 +459,69 @@ body {
   grid-template-rows: 1fr 1fr;
   gap: 16px;
   padding: 10px 20px 16px;
+}
+
+/* PWA safe area insets */
+@supports (padding: env(safe-area-inset-top)) {
+  .dashboard-grid {
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* iPad / tablet landscape — tighter spacing for 4:3 aspect ratio */
+@media (min-width: 768px) and (max-width: 1366px) and (min-height: 700px) {
+  .dashboard-grid {
+    gap: 8px;
+    padding: 6px 10px 8px;
+  }
+
+  @supports (padding: env(safe-area-inset-top)) {
+    .dashboard-grid {
+      padding-top: max(6px, env(safe-area-inset-top));
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      padding-left: max(10px, env(safe-area-inset-left));
+      padding-right: max(10px, env(safe-area-inset-right));
+    }
+  }
+
+  .glass-card,
+  .panel {
+    padding: clamp(10px, 1vw, 20px);
+    border-radius: 12px;
+  }
+}
+
+/* iPad portrait — 2-column × 4-row layout */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: repeat(4, 1fr) !important;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+
+  .dashboard-grid > * {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  @supports (padding: env(safe-area-inset-top)) {
+    .dashboard-grid {
+      padding-top: max(6px, env(safe-area-inset-top));
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      padding-left: max(8px, env(safe-area-inset-left));
+      padding-right: max(8px, env(safe-area-inset-right));
+    }
+  }
+
+  .glass-card,
+  .panel {
+    padding: clamp(10px, 1.2vw, 18px);
+    border-radius: 12px;
+  }
 }
 
 /* ============================================================
