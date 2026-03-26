@@ -6,7 +6,7 @@ import { LunarPanel } from "@/components/dashboard/panels/LunarPanel";
 import { KpSchumannPanel } from "@/components/dashboard/panels/KpSchumannPanel";
 import { SpaceWeatherPanel } from "@/components/dashboard/panels/SpaceWeatherPanel";
 import { TidalPanel } from "@/components/dashboard/panels/TidalPanel";
-import { BeachCamPanel } from "@/components/dashboard/panels/BeachCamPanel";
+import { NasaApodPanel } from "@/components/dashboard/panels/NasaApodPanel";
 import { CalendarPanel } from "@/components/dashboard/panels/CalendarPanel";
 
 export function DashboardGrid() {
@@ -30,7 +30,7 @@ export function DashboardGrid() {
         animationDelay="0.45s"
       />
 
-      {/* Row 2: KP+Schumann · Space Weather · Tidal · Beach Cam */}
+      {/* Row 2: KP+Schumann · Space Weather · Tidal · NASA APOD */}
       <KpSchumannPanel
         style={{ gridColumn: "1 / 4", gridRow: "2" }}
         animationDelay="0.6s"
@@ -43,7 +43,7 @@ export function DashboardGrid() {
         style={{ gridColumn: "7 / 10", gridRow: "2" }}
         animationDelay="0.9s"
       />
-      <BeachCamPanel
+      <NasaApodPanel
         style={{ gridColumn: "10 / 13", gridRow: "2" }}
         animationDelay="1.05s"
       />
