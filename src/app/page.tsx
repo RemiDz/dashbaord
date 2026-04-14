@@ -2,6 +2,7 @@
 
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
 import { StarField } from "@/components/shared/StarField";
+import { SettingsOverlay } from "@/components/shared/settings/SettingsOverlay";
 
 export default function Home() {
   return (
@@ -11,6 +12,8 @@ export default function Home() {
       <div className="relative flex-1 min-h-0" style={{ zIndex: 1 }}>
         <DashboardGrid />
       </div>
+
+      <SettingsOverlay />
     </div>
   );
 }

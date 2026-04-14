@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/shared/Panel";
-import { TartarianClock } from "@/components/clock/TartarianClock";
+import { ClockRenderer } from "@/components/clock/variants";
+import { useSettings, type ClockId } from "@/contexts/SettingsContext";
+
+const DIGITAL_VARIANTS = new Set<ClockId>(["digital-mono", "flip-digital", "word-clock"]);
 
 interface ClockPanelProps {
   style?: React.CSSProperties;
@@ -37,6 +40,7 @@ function getTimezone(): string {
 }
 
 export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
+  const { clock } = useSettings();
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
   const [tz, setTz] = useState("");
@@ -47,10 +51,7 @@ export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
     function updateSize() {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      // Use the smaller of width-based and height-based scaling
-      // Width: panel is ~4/12 of viewport = 33%, clock should be ~75% of that
       const fromWidth = Math.round(vw * 0.25);
-      // Height: row 1 is ~50% of viewport minus header, clock takes most of it
       const fromHeight = Math.round((vh - 56) * 0.42);
       setClockSize(Math.min(360, Math.max(200, Math.min(fromWidth, fromHeight))));
     }
@@ -77,22 +78,24 @@ export function ClockPanel({ style, animationDelay }: ClockPanelProps) {
       style={style}
       animationDelay={animationDelay}
     >
-      {/* Tartarian Clock — hero element, fills most of the card */}
+      {/* Clock face — user-selectable variant */}
       <div className="flex-1 flex items-center justify-center">
-        <TartarianClock size={clockSize} />
+        <ClockRenderer variant={clock} size={clockSize} />
       </div>
 
-      {/* Digital time — large, gold */}
-      <div
-        className="font-mono tracking-widest mt-2"
-        style={{
-          color: "var(--accent-gold)",
-          fontWeight: 300,
-          fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
-        }}
-      >
-        {time}
-      </div>
+      {/* Digital time — hidden for already-digital variants to avoid duplication */}
+      {!DIGITAL_VARIANTS.has(clock) && (
+        <div
+          className="font-mono tracking-widest mt-2"
+          style={{
+            color: "var(--accent-gold)",
+            fontWeight: 300,
+            fontSize: "clamp(1.2rem, 1.8vw, 1.6rem)",
+          }}
+        >
+          {time}
+        </div>
+      )}
 
       {/* Date */}
       <p

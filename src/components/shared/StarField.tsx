@@ -136,39 +136,8 @@ export function StarField() {
       const f = frameRef.current++;
       const sprites = spritesRef.current;
 
-      // Deep void base
-      ctx.fillStyle = "#06061A";
-      ctx.fillRect(0, 0, w, h);
-
-      // Nebula depth zones — subtle colour variation in the void
-      const n1 = ctx.createRadialGradient(
-        w * 0.3, h * 0.2, 0,
-        w * 0.3, h * 0.2, w * 0.5,
-      );
-      n1.addColorStop(0, "rgba(25,18,55,0.4)");
-      n1.addColorStop(0.4, "rgba(18,14,45,0.2)");
-      n1.addColorStop(1, "transparent");
-      ctx.fillStyle = n1;
-      ctx.fillRect(0, 0, w, h);
-
-      const n2 = ctx.createRadialGradient(
-        w * 0.75, h * 0.6, 0,
-        w * 0.75, h * 0.6, w * 0.4,
-      );
-      n2.addColorStop(0, "rgba(15,20,50,0.3)");
-      n2.addColorStop(0.5, "rgba(12,15,40,0.15)");
-      n2.addColorStop(1, "transparent");
-      ctx.fillStyle = n2;
-      ctx.fillRect(0, 0, w, h);
-
-      const n3 = ctx.createRadialGradient(
-        w * 0.5, h * 0.35, 0,
-        w * 0.5, h * 0.35, w * 0.3,
-      );
-      n3.addColorStop(0, "rgba(20,15,50,0.2)");
-      n3.addColorStop(1, "transparent");
-      ctx.fillStyle = n3;
-      ctx.fillRect(0, 0, w, h);
+      // Clear every frame — let the themed cosmic-atmosphere show through.
+      ctx.clearRect(0, 0, w, h);
 
       // Stars — draw pre-rendered sprites with twinkle
       for (const s of starsRef.current) {

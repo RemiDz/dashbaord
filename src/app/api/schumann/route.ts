@@ -35,6 +35,31 @@ function seededRandom(seed: number): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+/**
+ * NOAA ships Kp either as `[[headers],[values]...]` or as
+ * `[{time_tag, Kp, ...}, ...]`. When the format flipped to objects the
+ * legacy `row[1]` path produced `NaN`, which JSON-serialised to `null`
+ * and blanked both this panel and the Schumann-derived signal downstream.
+ */
+function extractKpValues(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return [];
+  const values: number[] = [];
+  for (const row of raw) {
+    let kp: number | null = null;
+    if (row && typeof row === "object" && !Array.isArray(row)) {
+      const obj = row as Record<string, unknown>;
+      const kpRaw = obj.Kp ?? obj.kp ?? obj.kp_index;
+      const parsed = typeof kpRaw === "number" ? kpRaw : parseFloat(String(kpRaw));
+      if (!Number.isNaN(parsed)) kp = parsed;
+    } else if (Array.isArray(row)) {
+      const parsed = parseFloat(String(row[1]));
+      if (!Number.isNaN(parsed)) kp = parsed;
+    }
+    if (kp !== null) values.push(kp);
+  }
+  return values;
+}
+
 export async function GET() {
   try {
     // Fetch real Kp data to modulate the Schumann signal
@@ -42,8 +67,8 @@ export async function GET() {
     try {
       const kpRes = await fetch(NOAA_KP_URL, { next: { revalidate: 900 } });
       if (kpRes.ok) {
-        const raw: string[][] = await kpRes.json();
-        kpValues = raw.slice(1).map((row) => parseFloat(row[1]));
+        const raw: unknown = await kpRes.json();
+        kpValues = extractKpValues(raw);
       }
     } catch {
       // If Kp fetch fails, we'll use default modulation

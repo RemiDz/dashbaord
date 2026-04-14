@@ -1,20 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { readClockPalette, alpha } from "./variants/clockPalette";
 
 interface TartarianClockProps {
   size?: number;
 }
 
 const ROMAN = ["XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
-
-// Celestial observatory palette
-const SILVER = "rgba(200, 196, 220, 0.85)";
-const SILVER_DIM = "rgba(200, 196, 220, 0.5)";
-const SILVER_FAINT = "rgba(200, 196, 220, 0.15)";
-const BLUE_ACCENT = "rgba(120, 180, 255, 0.7)";
-const SELENITE = "rgba(240, 238, 248, 0.9)";
-const BG_VOID = "rgba(5, 5, 15, 0.9)";
 
 export function TartarianClock({ size = 210 }: TartarianClockProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,13 +31,20 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
     let animId: number;
 
     function draw() {
+      const p = readClockPalette();
+      const silver = alpha(p.moonsilver, 0.85);
+      const silverDim = alpha(p.moonsilver, 0.5);
+      const silverFaint = alpha(p.moonsilver, 0.15);
+      const selenite = alpha(p.textPrimary, 0.9);
+      const bgVoid = p.bgOuter;
+      const accent = p.secondHand;
+
       const now = new Date();
       const h = now.getHours() % 12;
       const m = now.getMinutes();
       const s = now.getSeconds();
       const ms = now.getMilliseconds();
 
-      // Smooth angles
       const secAngle = ((s + ms / 1000) / 60) * Math.PI * 2 - Math.PI / 2;
       const minAngle = ((m + s / 60) / 60) * Math.PI * 2 - Math.PI / 2;
       const hourAngle = ((h + m / 60 + s / 3600) / 12) * Math.PI * 2 - Math.PI / 2;
@@ -52,38 +52,34 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, size, size);
 
-      // -- Background --
       ctx!.save();
       ctx!.beginPath();
       ctx!.arc(cx, cy, r, 0, Math.PI * 2);
       const bgGrad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, r);
-      bgGrad.addColorStop(0, "rgba(12, 12, 24, 0.95)");
-      bgGrad.addColorStop(1, BG_VOID);
+      bgGrad.addColorStop(0, p.bgInner);
+      bgGrad.addColorStop(1, bgVoid);
       ctx!.fillStyle = bgGrad;
       ctx!.fill();
       ctx!.restore();
 
-      // -- Outer ring (2px) with subtle blue-silver glow --
       ctx!.save();
       ctx!.beginPath();
       ctx!.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx!.strokeStyle = SILVER;
+      ctx!.strokeStyle = silver;
       ctx!.lineWidth = 2;
-      ctx!.shadowColor = "rgba(160, 180, 255, 0.3)";
+      ctx!.shadowColor = alpha(accent, 0.3);
       ctx!.shadowBlur = 8;
       ctx!.stroke();
       ctx!.restore();
 
-      // -- Inner ring (1px) --
       ctx!.save();
       ctx!.beginPath();
       ctx!.arc(cx, cy, r - 5, 0, Math.PI * 2);
-      ctx!.strokeStyle = SILVER_FAINT;
+      ctx!.strokeStyle = silverFaint;
       ctx!.lineWidth = 1;
       ctx!.stroke();
       ctx!.restore();
 
-      // -- 60 minute tick marks --
       for (let i = 0; i < 60; i++) {
         const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
         const isHour = i % 5 === 0;
@@ -91,7 +87,7 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
         const outerR = r - 7;
         const innerR = isMajor ? r - 20 : isHour ? r - 16 : r - 12;
         const lw = isMajor ? 2 : isHour ? 1.5 : 0.5;
-        const col = isMajor ? SILVER : isHour ? SILVER_DIM : SILVER_FAINT;
+        const col = isMajor ? silver : isHour ? silverDim : silverFaint;
 
         ctx!.save();
         ctx!.beginPath();
@@ -103,12 +99,11 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
         ctx!.restore();
       }
 
-      // -- Roman numerals (Cinzel) --
       ctx!.save();
       ctx!.font = `600 ${r * 0.13}px Cinzel, serif`;
       ctx!.textAlign = "center";
       ctx!.textBaseline = "middle";
-      ctx!.fillStyle = "rgba(220, 230, 255, 0.85)";
+      ctx!.fillStyle = alpha(p.textPrimary, 0.85);
       for (let i = 0; i < 12; i++) {
         const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
         const numR = r * 0.76;
@@ -118,29 +113,22 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
       }
       ctx!.restore();
 
-      // -- Hour hand: slim, selenite-white gradient --
-      drawHourHand(ctx!, cx, cy, hourAngle, r);
+      drawHourHand(ctx!, cx, cy, hourAngle, r, selenite, silver);
+      drawMinuteHand(ctx!, cx, cy, minAngle, r, silver);
+      drawSecondHand(ctx!, cx, cy, secAngle, r, accent);
 
-      // -- Minute hand: slender, silver --
-      drawMinuteHand(ctx!, cx, cy, minAngle, r);
-
-      // -- Second hand: thin blue needle --
-      drawSecondHand(ctx!, cx, cy, secAngle, r);
-
-      // -- Centre pin with silver/white gradient --
       ctx!.save();
       const pinGrad = ctx!.createRadialGradient(cx - 1, cy - 1, 0, cx, cy, 5);
-      pinGrad.addColorStop(0, SELENITE);
-      pinGrad.addColorStop(0.6, SILVER);
-      pinGrad.addColorStop(1, "rgba(140, 140, 170, 0.9)");
+      pinGrad.addColorStop(0, selenite);
+      pinGrad.addColorStop(0.6, silver);
+      pinGrad.addColorStop(1, alpha(p.moonsilver, 0.75));
       ctx!.beginPath();
       ctx!.arc(cx, cy, 4.5, 0, Math.PI * 2);
       ctx!.fillStyle = pinGrad;
       ctx!.fill();
-      // Pin highlight
       ctx!.beginPath();
       ctx!.arc(cx - 0.5, cy - 0.5, 1.5, 0, Math.PI * 2);
-      ctx!.fillStyle = "rgba(240, 240, 255, 0.5)";
+      ctx!.fillStyle = alpha(p.textPrimary, 0.5);
       ctx!.fill();
       ctx!.restore();
 
@@ -166,7 +154,15 @@ export function TartarianClock({ size = 210 }: TartarianClockProps) {
 // Hand drawing functions
 // -------------------------------------------------------
 
-function drawHourHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, angle: number, r: number) {
+function drawHourHand(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  angle: number,
+  r: number,
+  selenite: string,
+  silver: string,
+) {
   const length = r * 0.52;
   const tailLen = r * 0.1;
 
@@ -174,31 +170,37 @@ function drawHourHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, ang
   ctx.translate(cx, cy);
   ctx.rotate(angle + Math.PI / 2);
 
-  // Slim tapered body — no diamond accent
   ctx.beginPath();
-  ctx.moveTo(0, -length);          // Tip
-  ctx.lineTo(-3, -length * 0.3);   // Left shoulder
-  ctx.lineTo(-2.5, 0);             // Left base
-  ctx.lineTo(-1.5, tailLen);       // Left tail
-  ctx.lineTo(1.5, tailLen);        // Right tail
-  ctx.lineTo(2.5, 0);              // Right base
-  ctx.lineTo(3, -length * 0.3);    // Right shoulder
+  ctx.moveTo(0, -length);
+  ctx.lineTo(-3, -length * 0.3);
+  ctx.lineTo(-2.5, 0);
+  ctx.lineTo(-1.5, tailLen);
+  ctx.lineTo(1.5, tailLen);
+  ctx.lineTo(2.5, 0);
+  ctx.lineTo(3, -length * 0.3);
   ctx.closePath();
 
   const handGrad = ctx.createLinearGradient(0, tailLen, 0, -length);
-  handGrad.addColorStop(0, "rgba(160, 160, 190, 0.85)");
-  handGrad.addColorStop(0.5, SELENITE);
-  handGrad.addColorStop(1, SILVER);
+  handGrad.addColorStop(0, alpha(silver, 0.85));
+  handGrad.addColorStop(0.5, selenite);
+  handGrad.addColorStop(1, silver);
   ctx.fillStyle = handGrad;
   ctx.fill();
-  ctx.strokeStyle = "rgba(200, 196, 220, 0.3)";
+  ctx.strokeStyle = alpha(silver, 0.3);
   ctx.lineWidth = 0.5;
   ctx.stroke();
 
   ctx.restore();
 }
 
-function drawMinuteHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, angle: number, r: number) {
+function drawMinuteHand(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  angle: number,
+  r: number,
+  silver: string,
+) {
   const length = r * 0.72;
   const tailLen = r * 0.12;
 
@@ -207,8 +209,8 @@ function drawMinuteHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, a
   ctx.rotate(angle + Math.PI / 2);
 
   ctx.beginPath();
-  ctx.moveTo(0, -length);            // Tip (pointed)
-  ctx.lineTo(-2, -length * 0.15);    // Left taper
+  ctx.moveTo(0, -length);
+  ctx.lineTo(-2, -length * 0.15);
   ctx.lineTo(-1.5, 0);
   ctx.lineTo(-1, tailLen);
   ctx.lineTo(1, tailLen);
@@ -217,18 +219,25 @@ function drawMinuteHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, a
   ctx.closePath();
 
   const mGrad = ctx.createLinearGradient(0, tailLen, 0, -length);
-  mGrad.addColorStop(0, "rgba(160, 160, 190, 0.8)");
-  mGrad.addColorStop(1, SILVER);
+  mGrad.addColorStop(0, alpha(silver, 0.8));
+  mGrad.addColorStop(1, silver);
   ctx.fillStyle = mGrad;
   ctx.fill();
-  ctx.strokeStyle = "rgba(200, 196, 220, 0.25)";
+  ctx.strokeStyle = alpha(silver, 0.25);
   ctx.lineWidth = 0.5;
   ctx.stroke();
 
   ctx.restore();
 }
 
-function drawSecondHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, angle: number, r: number) {
+function drawSecondHand(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  angle: number,
+  r: number,
+  accent: string,
+) {
   const length = r * 0.8;
   const tailLen = r * 0.2;
 
@@ -236,29 +245,26 @@ function drawSecondHand(ctx: CanvasRenderingContext2D, cx: number, cy: number, a
   ctx.translate(cx, cy);
   ctx.rotate(angle + Math.PI / 2);
 
-  // Thin blue needle
   ctx.beginPath();
   ctx.moveTo(0, -length);
   ctx.lineTo(-0.5, 0);
   ctx.lineTo(0.5, 0);
   ctx.closePath();
-  ctx.fillStyle = BLUE_ACCENT;
+  ctx.fillStyle = accent;
   ctx.fill();
 
-  // Small counterweight circle
   ctx.beginPath();
   ctx.arc(0, tailLen * 0.7, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = BLUE_ACCENT;
+  ctx.fillStyle = accent;
   ctx.fill();
 
-  // Counterweight tail line
   ctx.beginPath();
   ctx.moveTo(-0.5, 0);
   ctx.lineTo(-0.8, tailLen);
   ctx.lineTo(0.8, tailLen);
   ctx.lineTo(0.5, 0);
   ctx.closePath();
-  ctx.fillStyle = "rgba(120, 180, 255, 0.4)";
+  ctx.fillStyle = alpha(accent, 0.4);
   ctx.fill();
 
   ctx.restore();

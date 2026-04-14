@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 
 const cinzel = localFont({
   src: [
@@ -58,11 +59,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="celestial-silver">
       <body
         className={`${cinzel.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        {children}
+        <SettingsProvider>{children}</SettingsProvider>
       </body>
     </html>
   );

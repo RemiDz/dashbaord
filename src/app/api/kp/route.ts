@@ -8,19 +8,39 @@ interface KpEntry {
   kp: number;
 }
 
+/**
+ * NOAA's feed ships in two historical shapes — legacy `string[][]` with a
+ * header row, and the current `{time_tag, Kp, ...}` object array. Tolerate
+ * both so a silent format flip doesn't blank the panel.
+ */
+function parseKpFeed(raw: unknown): KpEntry[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const out: KpEntry[] = [];
+  for (const row of raw) {
+    if (row && typeof row === "object" && !Array.isArray(row)) {
+      const obj = row as Record<string, unknown>;
+      const ts = typeof obj.time_tag === "string" ? obj.time_tag : "";
+      const kpRaw = obj.Kp ?? obj.kp ?? obj.kp_index;
+      const kp = typeof kpRaw === "number" ? kpRaw : parseFloat(String(kpRaw));
+      if (ts && !Number.isNaN(kp)) out.push({ timestamp: ts, kp });
+    } else if (Array.isArray(row)) {
+      const ts = typeof row[0] === "string" ? row[0] : "";
+      const kp = parseFloat(String(row[1]));
+      if (ts && !Number.isNaN(kp)) out.push({ timestamp: ts, kp });
+    }
+  }
+  return out;
+}
+
 export async function GET() {
   try {
     const res = await fetch(NOAA_KP_URL, { next: { revalidate: 900 } });
 
     if (!res.ok) throw new Error(`NOAA API error: ${res.status}`);
 
-    const raw: string[][] = await res.json();
-
-    // First row is headers: ["time_tag", "Kp", "a_running", "station_count"]
-    const entries: KpEntry[] = raw.slice(1).map((row) => ({
-      timestamp: row[0],
-      kp: parseFloat(row[1]),
-    }));
+    const raw: unknown = await res.json();
+    const entries = parseKpFeed(raw);
 
     // Last 24 entries = 3 days at 3h intervals (covers 24h sparkline with context)
     const history = entries.slice(-24);

@@ -64,6 +64,276 @@
   --font-display: var(--font-cinzel), "Cinzel", serif;
   --font-body: var(--font-cormorant), "Cormorant Garamond", serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
+
+  /* Background layer — swapped per theme */
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(15, 12, 45, 0.6) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(20, 15, 55, 0.25) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(15, 18, 50, 0.2) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(12, 10, 35, 0.3) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(25, 18, 45, 0.15) 0%, transparent 100%);
+
+  /* Panel inner glow (matches theme accent) */
+  --panel-highlight: rgba(240, 238, 248, 0.15);
+}
+
+/* ============================================================
+   Theme Variants — applied via data-theme on <html>
+   Only the tokens that diverge from :root are overridden.
+   ============================================================ */
+
+[data-theme="tartarian-brass"] {
+  --void-black: #120803;
+  --deep-indigo: #1F0E03;
+  --selenite-white: #FCEDD0;
+  --moonsilver: #C58A3A;
+  --lunar-gold: #FFCB69;
+
+  --bg-deep: #120803;
+  --bg-space: #1A0E04;
+
+  --text-primary: #FCEDD0;
+  --text-secondary: rgba(197, 138, 58, 0.75);
+  --text-dim: rgba(197, 138, 58, 0.45);
+  --text-label: rgba(197, 138, 58, 0.55);
+
+  --accent-gold: #FFCB69;
+  --accent-lunar: rgba(255, 225, 170, 0.9);
+  --accent-schumann: rgba(255, 180, 90, 0.9);
+  --accent-kp-calm: rgba(200, 220, 120, 0.9);
+  --accent-kp-elevated: rgba(255, 150, 80, 0.9);
+  --accent-kp-storm: rgba(255, 80, 60, 0.9);
+  --accent-tidal: rgba(255, 170, 100, 0.85);
+  --accent-binara: rgba(220, 140, 60, 0.85);
+
+  --border-glass: rgba(255, 200, 120, 0.1);
+  --border-glass-highlight: rgba(255, 200, 120, 0.22);
+  --text-brass: rgba(197, 138, 58, 0.6);
+  --text-brass-dim: rgba(197, 138, 58, 0.4);
+  --text-brass-faint: rgba(197, 138, 58, 0.25);
+  --text-value: #FCEDD0;
+  --border-brass: rgba(255, 200, 120, 0.1);
+  --border-brass-strong: rgba(255, 200, 120, 0.22);
+  --tidal-blue: rgba(255, 170, 100, 0.85);
+  --accent-copper: rgba(255, 150, 80, 0.8);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(80, 40, 10, 0.55) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(60, 30, 8, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(70, 35, 10, 0.25) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(40, 20, 6, 0.35) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(70, 40, 12, 0.18) 0%, transparent 100%);
+  --panel-highlight: rgba(255, 210, 140, 0.22);
+}
+
+[data-theme="obsidian-nebula"] {
+  --void-black: #07031A;
+  --selenite-white: #F3E7FF;
+  --moonsilver: #B28CDC;
+  --lunar-gold: #E6B3FF;
+
+  --bg-deep: #07031A;
+  --bg-space: #0E0725;
+
+  --text-primary: #F3E7FF;
+  --text-secondary: rgba(178, 140, 220, 0.75);
+  --text-dim: rgba(178, 140, 220, 0.4);
+  --text-label: rgba(178, 140, 220, 0.55);
+
+  --accent-gold: #E6B3FF;
+  --accent-schumann: rgba(200, 140, 255, 0.9);
+  --accent-kp-calm: rgba(150, 220, 200, 0.9);
+  --accent-tidal: rgba(140, 180, 255, 0.9);
+  --accent-binara: rgba(190, 120, 255, 0.9);
+
+  --border-glass: rgba(180, 130, 220, 0.1);
+  --border-glass-highlight: rgba(200, 150, 240, 0.22);
+  --border-brass: rgba(180, 130, 220, 0.1);
+  --border-brass-strong: rgba(200, 150, 240, 0.22);
+  --tidal-blue: rgba(140, 180, 255, 0.9);
+  --accent-copper: rgba(220, 130, 255, 0.7);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(80, 20, 120, 0.45) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(60, 30, 140, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(110, 30, 110, 0.25) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(40, 10, 70, 0.4) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(70, 20, 110, 0.22) 0%, transparent 100%);
+  --panel-highlight: rgba(230, 179, 255, 0.18);
+}
+
+[data-theme="forest-ether"] {
+  --void-black: #03140D;
+  --selenite-white: #DFFBEE;
+  --moonsilver: #78C9A4;
+  --lunar-gold: #8CE8B8;
+
+  --bg-deep: #03140D;
+  --bg-space: #051C14;
+
+  --text-primary: #DFFBEE;
+  --text-secondary: rgba(120, 201, 164, 0.75);
+  --text-dim: rgba(120, 201, 164, 0.4);
+  --text-label: rgba(120, 201, 164, 0.55);
+
+  --accent-gold: #9DF0C2;
+  --accent-schumann: rgba(120, 230, 200, 0.9);
+  --accent-kp-calm: rgba(140, 232, 184, 0.9);
+  --accent-tidal: rgba(110, 220, 210, 0.9);
+  --accent-binara: rgba(130, 210, 170, 0.9);
+
+  --border-glass: rgba(130, 220, 180, 0.1);
+  --border-glass-highlight: rgba(150, 230, 190, 0.22);
+  --border-brass: rgba(130, 220, 180, 0.1);
+  --border-brass-strong: rgba(150, 230, 190, 0.22);
+  --tidal-blue: rgba(110, 220, 210, 0.9);
+  --accent-copper: rgba(180, 220, 120, 0.7);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(10, 70, 50, 0.45) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(20, 90, 70, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(15, 60, 55, 0.25) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(6, 40, 28, 0.4) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(20, 90, 70, 0.18) 0%, transparent 100%);
+  --panel-highlight: rgba(157, 240, 194, 0.18);
+}
+
+[data-theme="rose-quartz"] {
+  --void-black: #180810;
+  --selenite-white: #FFEBF3;
+  --moonsilver: #E67AA4;
+  --lunar-gold: #FFC7D9;
+
+  --bg-deep: #180810;
+  --bg-space: #220B18;
+
+  --text-primary: #FFEBF3;
+  --text-secondary: rgba(230, 122, 164, 0.75);
+  --text-dim: rgba(230, 122, 164, 0.4);
+  --text-label: rgba(230, 122, 164, 0.55);
+
+  --accent-gold: #FFD0DF;
+  --accent-schumann: rgba(255, 160, 200, 0.9);
+  --accent-kp-calm: rgba(200, 230, 170, 0.9);
+  --accent-tidal: rgba(255, 170, 200, 0.9);
+  --accent-binara: rgba(230, 140, 180, 0.9);
+
+  --border-glass: rgba(255, 180, 210, 0.1);
+  --border-glass-highlight: rgba(255, 180, 210, 0.22);
+  --border-brass: rgba(255, 180, 210, 0.1);
+  --border-brass-strong: rgba(255, 180, 210, 0.22);
+  --tidal-blue: rgba(255, 170, 200, 0.9);
+  --accent-copper: rgba(255, 130, 160, 0.7);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(120, 30, 60, 0.45) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(90, 25, 50, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(100, 30, 70, 0.25) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(60, 20, 40, 0.4) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(100, 30, 70, 0.2) 0%, transparent 100%);
+  --panel-highlight: rgba(255, 199, 217, 0.22);
+}
+
+[data-theme="solar-dawn"] {
+  --void-black: #140703;
+  --selenite-white: #FFF3DF;
+  --moonsilver: #FFB87A;
+  --lunar-gold: #FFD48A;
+
+  --bg-deep: #140703;
+  --bg-space: #1E0D05;
+
+  --text-primary: #FFF3DF;
+  --text-secondary: rgba(255, 184, 122, 0.8);
+  --text-dim: rgba(255, 184, 122, 0.45);
+  --text-label: rgba(255, 184, 122, 0.6);
+
+  --accent-gold: #FFD48A;
+  --accent-schumann: rgba(255, 200, 120, 0.9);
+  --accent-kp-calm: rgba(200, 220, 120, 0.9);
+  --accent-tidal: rgba(255, 170, 100, 0.9);
+  --accent-binara: rgba(255, 152, 69, 0.9);
+
+  --border-glass: rgba(255, 190, 120, 0.12);
+  --border-glass-highlight: rgba(255, 190, 120, 0.25);
+  --border-brass: rgba(255, 190, 120, 0.12);
+  --border-brass-strong: rgba(255, 190, 120, 0.25);
+  --tidal-blue: rgba(255, 170, 100, 0.9);
+  --accent-copper: rgba(255, 140, 60, 0.8);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 20%, rgba(150, 60, 20, 0.5) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(110, 50, 15, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(140, 70, 20, 0.3) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(60, 25, 8, 0.4) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(110, 50, 20, 0.2) 0%, transparent 100%);
+  --panel-highlight: rgba(255, 212, 138, 0.24);
+}
+
+[data-theme="mono-graphite"] {
+  --void-black: #0A0A0A;
+  --selenite-white: #F0F0F0;
+  --moonsilver: #9A9A9A;
+  --lunar-gold: #CFCFCF;
+
+  --bg-deep: #0A0A0A;
+  --bg-space: #121212;
+
+  --text-primary: #F0F0F0;
+  --text-secondary: rgba(200, 200, 200, 0.75);
+  --text-dim: rgba(200, 200, 200, 0.4);
+  --text-label: rgba(200, 200, 200, 0.55);
+
+  --accent-gold: #D6D6D6;
+  --accent-schumann: rgba(210, 210, 210, 0.9);
+  --accent-kp-calm: rgba(200, 200, 200, 0.9);
+  --accent-kp-elevated: rgba(220, 220, 220, 0.9);
+  --accent-kp-storm: rgba(240, 240, 240, 0.95);
+  --accent-tidal: rgba(200, 200, 200, 0.9);
+  --accent-binara: rgba(180, 180, 180, 0.9);
+
+  --border-glass: rgba(200, 200, 200, 0.08);
+  --border-glass-highlight: rgba(200, 200, 200, 0.2);
+  --border-brass: rgba(200, 200, 200, 0.08);
+  --border-brass-strong: rgba(200, 200, 200, 0.2);
+  --tidal-blue: rgba(200, 200, 200, 0.9);
+  --accent-copper: rgba(180, 180, 180, 0.7);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(40, 40, 40, 0.5) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(30, 30, 30, 0.25) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(35, 35, 35, 0.25) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(20, 20, 20, 0.3) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(40, 40, 40, 0.15) 0%, transparent 100%);
+  --panel-highlight: rgba(240, 240, 240, 0.18);
+}
+
+[data-theme="aurora-frost"] {
+  --void-black: #030B14;
+  --selenite-white: #E6FBFF;
+  --moonsilver: #8AB0D6;
+  --lunar-gold: #A8F0FF;
+
+  --bg-deep: #030B14;
+  --bg-space: #05131F;
+
+  --text-primary: #E6FBFF;
+  --text-secondary: rgba(138, 176, 214, 0.75);
+  --text-dim: rgba(138, 176, 214, 0.4);
+  --text-label: rgba(138, 176, 214, 0.55);
+
+  --accent-gold: #A8F0FF;
+  --accent-schumann: rgba(140, 210, 255, 0.9);
+  --accent-kp-calm: rgba(130, 230, 200, 0.9);
+  --accent-tidal: rgba(140, 210, 255, 0.9);
+  --accent-binara: rgba(138, 158, 255, 0.9);
+
+  --border-glass: rgba(170, 210, 255, 0.1);
+  --border-glass-highlight: rgba(170, 210, 255, 0.22);
+  --border-brass: rgba(170, 210, 255, 0.1);
+  --border-brass-strong: rgba(170, 210, 255, 0.22);
+  --tidal-blue: rgba(140, 210, 255, 0.9);
+  --accent-copper: rgba(170, 220, 255, 0.7);
+
+  --bg-layer-1: radial-gradient(ellipse 80% 40% at 50% 15%, rgba(20, 60, 130, 0.5) 0%, transparent 100%);
+  --bg-layer-2: radial-gradient(ellipse 40% 50% at 15% 60%, rgba(25, 80, 150, 0.3) 0%, transparent 100%);
+  --bg-layer-3: radial-gradient(ellipse 35% 45% at 85% 45%, rgba(35, 60, 140, 0.3) 0%, transparent 100%);
+  --bg-layer-4: radial-gradient(ellipse 60% 30% at 50% 85%, rgba(10, 30, 70, 0.4) 0%, transparent 100%);
+  --bg-layer-5: radial-gradient(ellipse 50% 35% at 50% 55%, rgba(30, 60, 130, 0.2) 0%, transparent 100%);
+  --panel-highlight: rgba(168, 240, 255, 0.22);
 }
 
 /* ============================================================
@@ -206,6 +476,13 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Flip-board digit reveal */
+@keyframes flipIn {
+  0% { transform: translateY(-55%) scaleY(0.1); opacity: 0.2; }
+  50% { transform: translateY(0) scaleY(1.05); opacity: 0.9; }
+  100% { transform: translateY(0) scaleY(1); opacity: 1; }
 }
 
 /* Moon ambient glow breathing */
@@ -380,7 +657,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(240, 238, 248, 0.15),
+    var(--panel-highlight),
     transparent
   );
   pointer-events: none;
@@ -430,7 +707,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(240, 238, 248, 0.15),
+    var(--panel-highlight),
     transparent
   );
   pointer-events: none;
@@ -536,18 +813,13 @@ body {
 
 .cosmic-atmosphere {
   background:
-    /* Upper nebula glow */
-    radial-gradient(ellipse 80% 40% at 50% 15%, rgba(15, 12, 45, 0.6) 0%, transparent 100%),
-    /* Left nebula wisp */
-    radial-gradient(ellipse 40% 50% at 15% 60%, rgba(20, 15, 55, 0.25) 0%, transparent 100%),
-    /* Right nebula wisp */
-    radial-gradient(ellipse 35% 45% at 85% 45%, rgba(15, 18, 50, 0.2) 0%, transparent 100%),
-    /* Lower depth zone */
-    radial-gradient(ellipse 60% 30% at 50% 85%, rgba(12, 10, 35, 0.3) 0%, transparent 100%),
-    /* Centre subtle warmth */
-    radial-gradient(ellipse 50% 35% at 50% 55%, rgba(25, 18, 45, 0.15) 0%, transparent 100%),
-    /* Base void */
-    #05050F;
+    var(--bg-layer-1),
+    var(--bg-layer-2),
+    var(--bg-layer-3),
+    var(--bg-layer-4),
+    var(--bg-layer-5),
+    var(--void-black);
+  transition: background 1.2s ease;
 }
 
 /* Floating cosmic dust particles — from Lunata */
